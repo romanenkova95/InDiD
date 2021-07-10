@@ -1,7 +1,7 @@
 # TSAD
 
 
-We are still working on improvement and clearance our code. The final version will appear here soon.
+We are still working on the improvement and clearance of our code. The final version will appear here soon.
 
 The final version of the code is available for:
 - [x] Loss calculation 
