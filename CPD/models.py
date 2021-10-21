@@ -99,7 +99,7 @@ class MnistRNN(nn.Module):
         out = self.sigmoid(out)
         out = out.reshape(batch_size, seq_len, 1)
         return out
-
+    
 
 class CPD_model(pl.LightningModule):
     """Pytorch Lightning wrapper for change point detection models."""
@@ -112,6 +112,7 @@ class CPD_model(pl.LightningModule):
         experiment_type: str = "mnist",
         lr: float = 1e-3,
         batch_size: int = 64,
+        num_workers: int = 4,
     ) -> None:
         """Initialize CPD model.
 
@@ -121,12 +122,14 @@ class CPD_model(pl.LightningModule):
         :param experiment_type: type of data used for training (only mnist is available now)
         :param lr: learning rate
         :param batch_size: size of batch
+        :param num_workers: num of kernels used for evaluation         
         """
         super().__init__()
         self.model = model
 
         self.lr = lr
         self.batch_size = batch_size
+        self.num_workers = num_workers
 
         self.T = T
 
@@ -209,7 +212,7 @@ class CPD_model(pl.LightningModule):
         :return: dataloader for training
         """
         return DataLoader(
-            self.train_dataset, batch_size=self.batch_size, shuffle=True, num_workers=4
+            self.train_dataset, batch_size=self.batch_size, shuffle=True, num_workers=self.num_workers
         )
 
     def val_dataloader(self) -> DataLoader:
@@ -218,7 +221,7 @@ class CPD_model(pl.LightningModule):
         :return: dataloader for validation
         """
         return DataLoader(
-            self.test_dataset, batch_size=self.batch_size, shuffle=False, num_workers=4
+            self.test_dataset, batch_size=self.batch_size, shuffle=False, num_workers=self.num_workers
         )
 
     def test_dataloader(self) -> DataLoader:

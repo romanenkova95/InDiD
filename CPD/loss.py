@@ -42,6 +42,7 @@ class CPDLoss(nn.Module):
         delays = torch.arange(1, len_prob + 1).to(device) * prob * prob_no_change_before
 
         # (1 - p_0) * (1 - p_1) * ... * (1 - p_N)
+        
         prod_prob_no_change = torch.prod(prob_no_change) * (
             torch.ones(1).to(device) - prob[-1]
         )
@@ -135,7 +136,10 @@ class CPDLoss(nn.Module):
                     prob[i, change_ind : (change_ind + self.len_segment)]
                 )
                 fp_loss = CPDLoss.false_alarms_loss_(prob[i, :change_ind])
-                loss_curr = 2 * len(prob) / self.len_segment * delay_loss + fp_loss
+                alpha = 2 * len(prob) / self.len_segment
+                beta = 1
+                #print(alpha, beta)
+                loss_curr = alpha * delay_loss + beta * fp_loss
 
             loss += loss_curr
 
