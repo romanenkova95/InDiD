@@ -10,6 +10,99 @@ from CPD import datasets, loss
 import ruptures as rpt
 import numpy as np
 
+import random
+
+def fix_seeds(seed):
+    torch.manual_seed(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.cuda.manual_seed_all(seed)
+    random.seed(seed)
+    np.random.seed(seed)
+
+
+class Baseline_model(pl.LightningModule):
+    """Pytorch Lightning wrapper for change point detection models."""
+
+    def __init__(
+        self,
+        model: nn.Module,
+        experiment_type: str = "simple",  
+        experiment_data_type: str = "mnist",
+        lr: float = 1e-3,
+        batch_size: int = 64,
+        num_workers: int = 4,
+        subseq_len = None
+    ) -> None:
+        super().__init__()
+        self.model = model
+
+        self.lr = lr
+        self.batch_size = batch_size
+        self.num_workers = num_workers
+
+        self.experiment_type = experiment_type
+        self.experiment_data_type = experiment_data_type
+
+        self.train_dataset, self.test_dataset = datasets.CPDDatasets(
+            experiments_name=self.experiment_data_type
+        ).get_dataset_()
+        
+        self.train_dataset = datasets.BaselineDataset(self.train_dataset, 
+                                                     baseline_type=self.experiment_type,
+                                                     subseq_len=subseq_len)
+        self.test_dataset = datasets.BaselineDataset(self.test_dataset, 
+                                                     baseline_type=self.experiment_type,
+                                                     subseq_len=subseq_len)
+        
+    def forward(self, inputs: torch.Tensor) -> torch.Tensor:
+        return self.model(inputs)
+
+    def training_step(self, batch: torch.Tensor, batch_idx: int) -> torch.Tensor:
+        inputs, labels = batch
+        pred = self.forward(inputs.float())
+
+        train_loss = nn.BCELoss()(pred.squeeze(), labels.float().squeeze())
+        train_accuracy = (
+            ((pred.squeeze() > 0.5).long() == labels.squeeze()).float().mean()
+        )
+        
+
+        self.log("train_loss", train_loss, prog_bar=True)
+        self.log("train_acc", train_accuracy, prog_bar=True)
+        
+        return train_loss
+
+    def validation_step(self, batch: torch.Tensor, batch_idx: int) -> torch.Tensor:
+        inputs, labels = batch
+        pred = self.forward(inputs.float())
+
+        val_loss = nn.BCELoss()(pred.squeeze(), labels.float().squeeze())
+        val_accuracy = (
+            ((pred.squeeze() > 0.5).long() == labels.squeeze()).float().mean()
+        )
+
+        self.log("val_loss", val_loss, prog_bar=True)
+        self.log("val_acc", val_accuracy, prog_bar=True)
+        
+        return val_loss
+
+    def configure_optimizers(self) -> torch.optim.Optimizer:
+        opt = torch.optim.Adam(self.model.parameters(), lr=self.lr)
+        return opt
+
+    def train_dataloader(self) -> DataLoader:
+        return DataLoader(
+            self.train_dataset, batch_size=self.batch_size, shuffle=True, num_workers=self.num_workers
+        )
+
+    def val_dataloader(self) -> DataLoader:
+        return DataLoader(
+            self.test_dataset, batch_size=self.batch_size, shuffle=False, num_workers=self.num_workers
+        )
+
+    def test_dataloader(self) -> DataLoader:
+        return DataLoader(self.test_dataset, batch_size=self.batch_size, shuffle=False)
+
 
 class MnistRNN(nn.Module):
     """Initialize class with recurrent network for MNIST sequences."""

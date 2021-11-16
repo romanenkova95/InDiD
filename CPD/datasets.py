@@ -501,10 +501,7 @@ class BaselineDataset(Dataset):
         elif self.baseline_type == 'weak_labels':
             global_idx = idx // (self.T - self.subseq_len + 1)
             local_idx = idx %  (self.T - self.subseq_len + 1)
-            print(global_idx)
-            print(local_idx)            
             images = self.cpd_dataset[global_idx][0][local_idx: local_idx + self.subseq_len]
-            print(self.cpd_dataset[global_idx][1])
             labels = max(self.cpd_dataset[global_idx][1][local_idx: local_idx + self.subseq_len])
             
         return images, labels    

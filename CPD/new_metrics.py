@@ -79,13 +79,39 @@ def calculate_metrics(true_labels, predictions):
     confusion_matrix = (TN, FP, FN, TP)
     return confusion_matrix, FP_delay, delay
 
+##########################################
+def get_models_predictions(inputs, labels, model, model_type='seq2seq', subseq_len=None, device='cuda'):
+    inputs = inputs.to('cuda')
+    model.to(device)
+    
+    if model_type in ['simple', 'weak_labels']:
+        outs = []
+        true_labels = []
+        for batch_n in range(inputs.shape[0]):
+            inp = inputs[batch_n]#.to(device)
+            lab = labels[batch_n]#.to(device)
+            
+            if model_type == 'simple':
+                out = [model(inp[i].flatten().unsqueeze(0).float()).squeeze() for i in range(0, len(inp))]
+                true_labels += [lab]
+            elif (model_type == 'weak_labels') and (subseq_len is not None):
+                out = [model(inp[i: i + subseq_len].flatten(1).unsqueeze(0).float()).squeeze() for i in range(0, len(inp) - subseq_len)]
+                true_labels += lab[(len(lab) - len(out)):].unsqueeze(0)        
+            outs.append(torch.stack(out))                    
+        outs = torch.stack(outs)
+        true_labels = torch.stack(true_labels)                
+    else:
+        outs = model(inputs)
+        true_labels = labels
+    return outs, true_labels
 
 def evaluate_metrics_on_set(
     model: nn.Module,
     test_loader: DataLoader,
     threshold: float = 0.5,
     verbose: bool = True,
-    baseline: bool = False
+    model_type: str = 'seq2seq',
+    subseq_len: int = None
 ) -> Tuple[int, int, int, int, float, float]:
     """Calculate metrics for CPD.
     """
@@ -112,14 +138,12 @@ def evaluate_metrics_on_set(
     conf_matrixes = np.array((0, 0, 0, 0))
     
     for test_inputs, test_labels in test_loader:
-        test_inputs, test_labels = test_inputs.float().to(device), test_labels.to(device)
-        
-        if baseline:
-            test_out = [model(i) for i in test_inputs]
-            test_out = torch.stack(test_out)        
-        else:
-            test_out = model(test_inputs)
-
+        test_out, test_labels = get_models_predictions(test_inputs, test_labels, 
+                                                       model, 
+                                                       model_type=model_type, 
+                                                       subseq_len=subseq_len, 
+                                                       device=device)
+                    
         try:
             test_out = test_out.squeeze(2)
         except:
@@ -340,7 +364,7 @@ def get_change_idx(pred, threshold=None):
     return cp
 
 
-def cover(model, test_dataloader, threshold):
+def cover(model, test_dataloader, threshold, model_type, subseq_len):
     cs = []
     try:
         device = model.device.type
@@ -352,11 +376,15 @@ def cover(model, test_dataloader, threshold):
         seq_len = labels[0].shape[0]
         inputs = inputs.to(device)
 
-        pred = model(inputs)
+        test_out, labels = get_models_predictions(inputs, labels, 
+                                                  model, 
+                                                  model_type=model_type, 
+                                                  subseq_len=subseq_len, 
+                                                  device=device)
         try: 
-            pred = pred.squeeze(2)
+            pred = test_out.squeeze(2)
         except:
-            pred = pred.squeeze(1)
+            pred = test_out.squeeze(1)
         pred = pred.detach().cpu().numpy()
         
         labels = labels.detach().cpu().numpy()
@@ -380,8 +408,8 @@ def cover(model, test_dataloader, threshold):
     cs = np.mean(cs)
     return cs
 
-def F1_score(model, test_dataloader, threshold):
-    TP, TN, FP, FN, _, _ = evaluate_metrics_on_set(model, test_dataloader, threshold, verbose=False)
+def F1_score(model, test_dataloader, threshold, model_type, subseq_len):
+    TP, TN, FP, FN, _, _ = evaluate_metrics_on_set(model, test_dataloader, threshold, verbose=False, model_type=model_type, subseq_len=subseq_len)
     f1_score = TP / (TP + 0.5 * (FP + FN))
     return f1_score
 
@@ -427,7 +455,8 @@ def F1_score_ruptures(model, test_dataloader, threshold, margin=10):
     return macro_f1_score
             
 #########################################################################################
-def evaluation_pipeline(model, test_dataloader, threshold_list, device='cuda', verbose=False):
+def evaluation_pipeline(model, test_dataloader, threshold_list, device='cuda', verbose=False, 
+                        model_type='seq2seq', subseq_len=None):
     try:
         model.to(device)
         model.eval()
@@ -454,7 +483,8 @@ def evaluation_pipeline(model, test_dataloader, threshold_list, device='cuda', v
             fn_number,
             mean_delay,
             mean_fp_delay,
-        ) = evaluate_metrics_on_set(model, test_dataloader, th, verbose=False, baseline=False)
+        ) = evaluate_metrics_on_set(model, test_dataloader, th, verbose=False, 
+                                    model_type=model_type, subseq_len=subseq_len)
         
         tp_number_list.append(tp_number)
         tn_number_list.append(tn_number)                
@@ -464,10 +494,11 @@ def evaluation_pipeline(model, test_dataloader, threshold_list, device='cuda', v
         fp_delay_list.append(mean_fp_delay)
         
         if (th <= 1) and (th > 0):
-            cover_dict[th] = cover(model, test_dataloader, th)
-            f1_dict[th] = F1_score(model, test_dataloader, th)
-            f1_lib_dict[th] = F1_score_ruptures(model, test_dataloader, th, margin=5)
-
+            cover_dict[th] = cover(model, test_dataloader, th, model_type=model_type, subseq_len=subseq_len)
+            f1_dict[th] = F1_score(model, test_dataloader, th, model_type=model_type, subseq_len=subseq_len)
+            #f1_lib_dict[th] = F1_score_ruptures(model, test_dataloader, th, margin=5)
+            f1_lib_dict[th] = 0
+            
     conf_matrix = (tp_number_list, tn_number_list, fp_number_list, fn_number_list)
     auc = area_under_graph(delay_list, fp_delay_list)
 
