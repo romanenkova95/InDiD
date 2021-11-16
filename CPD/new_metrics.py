@@ -1,6 +1,7 @@
 from typing import List, Tuple
 
 import numpy as np
+import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 
@@ -84,6 +85,7 @@ def evaluate_metrics_on_set(
     test_loader: DataLoader,
     threshold: float = 0.5,
     verbose: bool = True,
+    baseline: bool = False
 ) -> Tuple[int, int, int, int, float, float]:
     """Calculate metrics for CPD.
     """
@@ -97,19 +99,34 @@ def evaluate_metrics_on_set(
 
     # calculate metrics on set
     model.eval()
-    device = model.device.type
     
+    try:
+        device = model.device.type
+    except:
+        try:
+            device = model.device
+        except:
+            device = 'cpu'
     FP_delays = []
     delays = []
     conf_matrixes = np.array((0, 0, 0, 0))
     
     for test_inputs, test_labels in test_loader:
         test_inputs, test_labels = test_inputs.float().to(device), test_labels.to(device)
-        test_out = model(test_inputs)
+        
+        if baseline:
+            test_out = [model(i) for i in test_inputs]
+            test_out = torch.stack(test_out)        
+        else:
+            test_out = model(test_inputs)
+
         try:
             test_out = test_out.squeeze(2)
         except:
-            test_out = test_out.squeeze(1)            
+            try:
+                test_out = test_out.squeeze(1)
+            except:
+                test_out = test_out
         predictions = test_out > threshold
         confusion_matrix, FP_delay, delay = calculate_metrics(test_labels.detach().cpu(), predictions.detach().cpu())
 
@@ -135,7 +152,8 @@ def get_pareto_metrics_for_threshold(
     test_loader: DataLoader,
     threshold_list: List[float],
     device: str = "cuda",
-    verbose: bool = True
+    verbose: bool = True,
+    baseline: bool = False
 ) -> Tuple[List[float], List[float], List[float], List[float]]:
     """Get FP, FN, delays and FP delays metrics for set of thresholds.
 
@@ -151,24 +169,29 @@ def get_pareto_metrics_for_threshold(
     """
     fp_number_list = []
     fn_number_list = []
+    tp_number_list = []
+    tn_number_list = []    
     delay_list = []
     fp_delay_list = []
     for threshold in threshold_list:
         (
-            _,
-            _,
+            tp_number,
+            tn_number,
             fp_number,
             fn_number,
             mean_delay,
             mean_fp_delay,
-        ) = evaluate_metrics_on_set(model, test_loader, threshold, verbose)
+        ) = evaluate_metrics_on_set(model, test_loader, threshold, verbose, baseline)
 
+        tp_number_list.append(tp_number)
+        tn_number_list.append(tn_number)                
         fp_number_list.append(fp_number)
         fn_number_list.append(fn_number)
         delay_list.append(mean_delay)
         fp_delay_list.append(mean_fp_delay)
-
-    return fp_number_list, fn_number_list, delay_list, fp_delay_list
+        
+    conf_matrix = (tp_number_list, tn_number_list, fp_number_list, fn_number_list)
+    return conf_matrix, delay_list, fp_delay_list        
 
 
 def area_under_graph(delay_list: List[float], fp_delay_list: List[float]) -> float:
@@ -179,6 +202,61 @@ def area_under_graph(delay_list: List[float], fp_delay_list: List[float]) -> flo
     :return: area under curve
     """
     return np.trapz(delay_list, fp_delay_list)
+
+
+# (n_samples, n_dims)
+
+import ruptures as rpt  # our package
+
+def evaluate_baseline(dataloader, baseline_model, pen=None, n_pred=None):
+    all_predictions = []
+    all_labels = []
+    for inputs, labels in dataloader:
+        for i, seq in enumerate(inputs):
+            signal = seq.flatten(1, 2).detach().numpy()
+            label = labels[i]            
+            algo = baseline_model.fit(signal)
+            if pen:
+                cp_pred = algo.predict(pen=pen)
+            elif n_pred:
+                cp_pred = algo.predict(n_pred)                
+            cp_pred = cp_pred[0]
+            baselines_pred = np.zeros(inputs.shape[1])
+            baselines_pred[cp_pred:] = np.ones(inputs.shape[1] - cp_pred)        
+            all_predictions.append(baselines_pred)
+            all_labels.append(label)
+    return all_predictions, all_labels
+
+
+def baseline_metrics(all_labels, all_preds):
+    fp_number = 0
+    fn_number = 0
+    tp_number = 0
+    tn_number = 0
+    delay = []
+    fp_delay = []
+
+    for label, output in zip(all_labels, all_preds):
+        output = torch.from_numpy(output)
+        (
+            tp_cur,
+            tn_cur,
+            fn_cur,
+            fp_cur,
+            delay_curr,
+            fp_delay_curr,
+        ) = metrics.evaluate_metrics(label, output, 0.5)
+
+        tp_number += tp_cur
+        fp_number += fp_cur
+        tn_number += tn_cur
+        fn_number += fn_cur
+
+        delay.append(delay_curr)
+        fp_delay.append(fp_delay_curr)
+        
+        confusion_matrix = (tp_number, fp_number, tn_number, fn_number)
+    return confusion_matrix, np.mean(delay), np.mean(fp_delay)
 
 
 #-------------------------------------------------------------------------------------------------------------------------------
@@ -261,9 +339,13 @@ def get_change_idx(pred, threshold=None):
     cp.append(cp_ids[0])
     return cp
 
+
 def cover(model, test_dataloader, threshold):
     cs = []
-    device = model.device.type
+    try:
+        device = model.device.type
+    except:
+        device = model.device
     model.to(device)
     
     for inputs, labels in test_dataloader:
@@ -307,7 +389,10 @@ from ruptures.metrics import precision_recall
 
 
 def F1_score_ruptures(model, test_dataloader, threshold, margin=10):
-    device = model.device.type
+    try:
+        device = model.device.type
+    except:
+        device = model.device
     model.to(device)
 
     precisions = []
@@ -341,3 +426,87 @@ def F1_score_ruptures(model, test_dataloader, threshold, margin=10):
     macro_f1_score = 2.0 * macro_precisions * macro_recall / (macro_precisions + macro_recall)
     return macro_f1_score
             
+#########################################################################################
+def evaluation_pipeline(model, test_dataloader, threshold_list, device='cuda', verbose=False):
+    try:
+        model.to(device)
+        model.eval()
+    except:
+        print('Cannot move model to device')    
+    
+    fp_number_list = []
+    fn_number_list = []
+    tp_number_list = []
+    tn_number_list = []    
+    delay_list = []
+    fp_delay_list = []
+    
+    
+    cover_dict = {}
+    f1_dict = {}
+    f1_lib_dict = {}
+
+    for th in threshold_list:
+        (
+            tp_number,
+            tn_number,
+            fp_number,
+            fn_number,
+            mean_delay,
+            mean_fp_delay,
+        ) = evaluate_metrics_on_set(model, test_dataloader, th, verbose=False, baseline=False)
+        
+        tp_number_list.append(tp_number)
+        tn_number_list.append(tn_number)                
+        fp_number_list.append(fp_number)
+        fn_number_list.append(fn_number)
+        delay_list.append(mean_delay)
+        fp_delay_list.append(mean_fp_delay)
+        
+        if (th <= 1) and (th > 0):
+            cover_dict[th] = cover(model, test_dataloader, th)
+            f1_dict[th] = F1_score(model, test_dataloader, th)
+            f1_lib_dict[th] = F1_score_ruptures(model, test_dataloader, th, margin=5)
+
+    conf_matrix = (tp_number_list, tn_number_list, fp_number_list, fn_number_list)
+    auc = area_under_graph(delay_list, fp_delay_list)
+
+    # Cover
+    best_th_cover = max(cover_dict, key=cover_dict.get)
+    best_cover = cover_dict[best_th_cover]
+    
+    # Time to FA, detection delay
+    ind = threshold_list.index(best_th_cover)
+    best_time_to_FA = fp_delay_list[ind]
+    best_delay = delay_list[ind]
+
+    # Conf matrix and F1
+    best_conf_matrix = (conf_matrix[0][ind], conf_matrix[1][ind], conf_matrix[2][ind], conf_matrix[3][ind])
+    best_f1 = f1_dict[best_th_cover]
+    
+    # F1 from ruptures 
+    best_f1_ruptures = f1_lib_dict[best_th_cover]
+    
+    if verbose:
+        print('AUC:', round(auc, 4))
+        print('Time to FA {}, delay detection {} for best-cover threshold: {}'. format(round(best_time_to_FA, 4), 
+                                                                                       round(delay_list[ind], 4), 
+                                                                                       round(best_th_cover, 4)))
+        print('TP {}, TN {}, FP {}, FN {} for best-cover threshold: {}'. format(best_conf_matrix[0],
+                                                                                best_conf_matrix[1],
+                                                                                best_conf_matrix[2],
+                                                                                best_conf_matrix[3],
+                                                                                round(best_th_cover, 4)))
+        print('Max COVER {}: for threshold {}'.format(round(best_cover, 4), 
+                                                      round(best_th_cover, 4)))
+
+        print('Max F1 {}: for threshold {}'.format(round(f1_dict[max(f1_dict, key=f1_dict.get)], 4), 
+                                                   round(max(f1_dict, key=f1_dict.get), 4)))
+
+        print('F1 {}: for best-cover threshold {}'.format(round(best_f1, 4), round(best_th_cover, 4)))
+        print('Max F1_ruptures (M=5) {}: for threshold {}'.format(round(f1_lib_dict[max(f1_lib_dict, key=f1_lib_dict.get)], 4), 
+                                                                  round(max(f1_lib_dict, key=f1_lib_dict.get), 4)))
+
+        print('F1_ruptures {}: for best-cover threshold {}'.format(round(best_f1_ruptures, 4), round(best_th_cover, 4)))
+
+    return (best_th_cover, best_time_to_FA, best_delay, auc, conf_matrix, best_f1, best_f1_ruptures, best_cover), delay_list, fp_delay_list

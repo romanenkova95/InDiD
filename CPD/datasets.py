@@ -14,7 +14,7 @@ from torch.distributions.multivariate_normal import MultivariateNormal
 class CPDDatasets:
     """Class for experiments' datasets."""
 
-    def __init__(self, experiments_name: str) -> None:
+    def __init__(self, experiments_name: str, model_type='seq2seq') -> None:
         """Initialize class.
 
         :param experiments_name: type of experiments (only mnist available now!)
@@ -95,12 +95,28 @@ class CPDDatasets:
         train_set = Subset(dataset, train_idx)
         test_set = Subset(dataset, test_idx)
         return train_set, test_set
+    
+    @staticmethod
+    def get_subset_(
+        dataset: Dataset, subset_size: int, shuffle: bool = True
+    ) -> Dataset:
+        len_dataset = len(dataset)
+        idx = np.arange(len_dataset)
+
+        if shuffle:
+            idx = random.sample(min(subset_size, len_dataset))
+        else:
+            idx = idx[: subset_size]
+        subset = Subset(dataset, idx)
+        return subset  
+    
 
 
 class MNISTSequenceDataset(Dataset):
     """Class for Dataset consists of sequences of MNIST images."""
 
-    def __init__(self, path_to_data: str, type_seq: str = "all") -> None:
+    def __init__(self, path_to_data: str, 
+                 type_seq: str = "all", baseline: bool = False) -> None:
         """Initialize datasets' parameters.
 
         :param path_to_data: path to folders with MNIST sequences
@@ -135,13 +151,24 @@ class MNISTSequenceDataset(Dataset):
                     type_seq
                 )
             )
+        
+        
+        self.baseline = baseline
 
     def __len__(self) -> int:
         """Get datasets' length.
 
         :return: length of dataset
         """
-        return len(self.normal_seq_paths) + len(self.with_change_seq_paths)
+        if self.baseline:
+            self.baseline = False
+            tmp_imgs, tmp_labels = self.__getitem__(0)
+            self.baseline = True       
+            self.seq_len = len(tmp_labels)
+            len_dataset = len(self.sample_paths) * self.seq_len
+        else:
+            len_dataset = len(self.sample_paths)
+        return len_dataset
 
     def __getitem__(self, idx: int) -> Tuple[np.array, np.array]:
         """Get one images' sequence and corresponding labels from dataset.
@@ -152,7 +179,12 @@ class MNISTSequenceDataset(Dataset):
              - sequence of labels
         """
         # read sequences of images
-        path_img = self.sample_paths[idx]
+        if self.baseline:
+            dataset_idx = idx // self.seq_len
+        else:
+            dataset_idx = idx
+        
+        path_img = self.sample_paths[dataset_idx]
         seq_images = ImageSequence(os.path.join(path_img, "*_*.png"))
         seq_images = np.transpose(seq_images, (0, 3, 1, 2))[:, 0, :, :].astype(float)
         seq_labels = sorted(os.listdir(path_img), key=lambda x: int(x.split("_")[0]))
@@ -161,11 +193,17 @@ class MNISTSequenceDataset(Dataset):
         seq_labels = [int(x.split(".png")[0].split("_")[1]) for x in seq_labels]
         seq_labels = (np.array(seq_labels) != seq_labels[0]).astype(int)
 
+        
+        if self.baseline:
+            img_idx = idx % self.seq_len
+            seq_images = seq_images[img_idx] 
+            seq_labels = seq_labels[img_idx]
+        
         return seq_images, seq_labels
 
     @staticmethod
     def convert_to_gray_(frame: np.array) -> np.array:
-        """Convert PIMS' images to gray scale. In MNIST case, all channels are equals.
+        """Convert PIMS' images to gray scale. In MNIST case, all channels equals.
 
         :param frame: image
         :return: image in gray scale
@@ -430,3 +468,43 @@ class HumanActivityDataset(Dataset):
         
         
         return self.features[idx][sel_features].iloc[:, :-2].values, self.labels[idx]    
+    
+    
+class BaselineDataset(Dataset):
+    def __init__(self, cpd_dataset, baseline_type='simple', subseq_len=None):
+        self.baseline_type = baseline_type
+        
+        self.cpd_dataset = cpd_dataset
+        self.N = len(cpd_dataset)
+        self.T = len(cpd_dataset.__getitem__(0)[0])
+        
+        self.subseq_len = subseq_len
+        
+        if (self.baseline_type == 'weak_labels') and (self.subseq_len is None):
+            raise ValueError('Please, set subsequence length.')
+        
+    def __len__(self):
+        if self.baseline_type == 'simple':
+            return self.N * self.T
+        elif (self.baseline_type == 'weak_labels'):
+            return self.N * (self.T - self.subseq_len + 1)
+        else:
+            raise ValueError("Wrong type of baseline.")
+        
+    def __getitem__(self, idx):
+        if self.baseline_type == 'simple':
+            global_idx = idx // self.T
+            local_idx = idx % self.T
+            images = self.cpd_dataset[global_idx][0][local_idx]
+            labels = self.cpd_dataset[global_idx][1][local_idx] 
+            
+        elif self.baseline_type == 'weak_labels':
+            global_idx = idx // (self.T - self.subseq_len + 1)
+            local_idx = idx %  (self.T - self.subseq_len + 1)
+            print(global_idx)
+            print(local_idx)            
+            images = self.cpd_dataset[global_idx][0][local_idx: local_idx + self.subseq_len]
+            print(self.cpd_dataset[global_idx][1])
+            labels = max(self.cpd_dataset[global_idx][1][local_idx: local_idx + self.subseq_len])
+            
+        return images, labels    

@@ -7,6 +7,8 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 
 from CPD import datasets, loss
+import ruptures as rpt
+import numpy as np
 
 
 class MnistRNN(nn.Module):
@@ -172,9 +174,22 @@ class CPD_model(pl.LightningModule):
         train_accuracy = (
             ((pred.squeeze() > 0.5).long() == labels.squeeze()).float().mean()
         )
+        
 
         self.log("train_loss", train_loss, prog_bar=True)
         self.log("train_acc", train_accuracy, prog_bar=True)
+        
+        ############################################
+        #if self.T:
+        #    cpd_loss = loss.CPDLoss(len_segment=self.T)
+        #else:
+        #    cpd_loss = loss.CPDLoss(len_segment=len(pred.squeeze()[0]))
+        #cpd_loss = cpd_loss(pred.squeeze(), labels.float().squeeze())
+        #
+        #bce_loss = nn.BCELoss()(pred.squeeze(), labels.float().squeeze())
+        #
+        #self.log("cpd_loss", cpd_loss, prog_bar=False)
+        #self.log("bce_loss", bce_loss, prog_bar=False)
 
         return train_loss
 
@@ -195,6 +210,17 @@ class CPD_model(pl.LightningModule):
 
         self.log("val_loss", val_loss, prog_bar=True)
         self.log("val_acc", val_accuracy, prog_bar=True)
+        
+        ############################################
+        #if self.T:
+        #    cpd_loss = loss.CPDLoss(len_segment=self.T)
+        #else:
+        #    cpd_loss = loss.CPDLoss(len_segment=len(pred.squeeze()[0]))
+        #cpd_loss = cpd_loss(pred.squeeze(), labels.float().squeeze())        
+        #bce_loss = nn.BCELoss()(pred.squeeze(), labels.float().squeeze())
+        
+        #self.log("cpd_loss", cpd_loss, prog_bar=False)
+        #self.log("bce_loss", bce_loss, prog_bar=False)        
 
         return val_loss
 
@@ -230,3 +256,75 @@ class CPD_model(pl.LightningModule):
         :return: dataloader for test
         """
         return DataLoader(self.test_dataset, batch_size=self.batch_size, shuffle=False)
+
+    
+class L2Baseline(nn.Module):
+    def __init__(self, l2_type, extractor=None, device='cuda'):
+        super().__init__()
+        self.device = device
+        self.type = l2_type
+        self.extractor = extractor
+
+    def forward(self, inputs):
+        batch_size, seq_len = inputs.size()[:2]
+        l2_dist = []
+        
+        if self.extractor is not None:
+            inputs = extractor(inputs)
+        for seq in inputs:
+            seq = seq.float().to(self.device)
+            if self.type == "one_by_one":
+                curr_l2_dist = [0] + [((x - y)**2).sum().item() for x, y in zip(seq[1:], seq[:-1])]   
+            elif self.type == "vs_first":
+                curr_l2_dist = [0] + [((x - seq[0])**2).sum().item() for x in seq[1:]]
+            elif self.type == "vs_mean":
+                mean_seq = torch.mean(seq, 0)
+                curr_l2_dist = [0] + [((x - mean_seq)**2).sum().item() for x in seq[1:]]
+            curr_l2_dist = np.array(curr_l2_dist) / max(curr_l2_dist)
+            l2_dist.append(curr_l2_dist)
+        l2_dist = torch.from_numpy(np.array(l2_dist))
+        return l2_dist
+    
+    
+class ZeroBaseline(nn.Module):
+    def __init__(self, device):
+        super().__init__()
+        self.device = device
+
+    def forward(self, inputs):
+        batch_size, seq_len = inputs.size()[:2]
+        out = torch.zeros((batch_size, seq_len, 1))
+        return out
+    
+    
+class ClassicBaseline(nn.Module):
+
+    def __init__(self, model, pen=None, n_pred=None, device='cuda'):
+        super().__init__()
+        self.device=device
+        self.model = model
+        self.pen = pen
+        self.n_pred = n_pred
+
+    def forward(self, inputs):
+        all_predictions = []
+        for i, seq in enumerate(inputs):
+            # (n_samples, n_dims)
+            try:
+                signal = seq.flatten(1, 2).detach().cpu().numpy()
+            except:
+                signal = seq.detach().cpu().numpy()
+            algo = self.model.fit(signal)
+            cp_pred = []
+            if self.pen is not None:
+                cp_pred = self.model.predict(pen=self.pen)
+            elif self.n_pred is not None:
+                cp_pred = self.model.predict(self.n_pred) 
+            else:
+                cp_pred = self.model.predict()                 
+            cp_pred = cp_pred[0]
+            baselines_pred = np.zeros(inputs.shape[1])
+            baselines_pred[cp_pred:] = np.ones(inputs.shape[1] - cp_pred)        
+            all_predictions.append(baselines_pred)
+        out = torch.from_numpy(np.array(all_predictions))
+        return out    

@@ -97,6 +97,7 @@ def evaluate_metrics_on_set(
     threshold: float = 0.5,
     device: str = "cuda",
     verbose: bool = True,
+    baseline: bool = True 
 ) -> Tuple[int, int, int, int, float, float]:
     """Calculate metrics for CPD.
 
@@ -125,8 +126,16 @@ def evaluate_metrics_on_set(
     model.eval()
     for test_inputs, test_labels in test_loader:
         test_inputs, test_labels = test_inputs.to(device), test_labels.to(device)
-        test_out = model(test_inputs)
-
+        
+        if baseline:
+            test_out = [model(i) for i in test_inputs]
+            test_out = torch.stack(test_out)
+            print(test_out.shape)
+        
+        else:
+            test_out = model(test_inputs)
+            print(test_out.shape)
+            
         for label, output in zip(test_labels.squeeze(), test_out.squeeze()):
             (
                 tp_cur,
