@@ -2,7 +2,7 @@
 import os
 import random
 import torch
-from typing import Tuple
+from typing import Tuple, List
 
 import numpy as np
 import pandas as pd
@@ -10,6 +10,14 @@ from pims import ImageSequence
 from torch.utils.data import Dataset, Subset
 from torch.distributions.multivariate_normal import MultivariateNormal
 
+def fix_seeds(seed: int = 0) -> None:
+    """"Fix all the seeds"""
+    
+    torch.manual_seed(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.cuda.manual_seed_all(seed)
+    random.seed(seed)
+    np.random.seed(seed)
 
 class CPDDatasets:
     """Class for experiments' datasets."""
@@ -26,7 +34,7 @@ class CPDDatasets:
             "human_activity",
             "mnist",
             "explosion",
-            "oops",
+            "car_accident",
         ]:
             self.experiments_name = experiments_name
         elif experiments_name.startswith('synthetic'):
@@ -38,28 +46,18 @@ class CPDDatasets:
             raise ValueError("Wrong experiment_name {}.".format(experiments_name))
 
     def get_dataset_(self) -> Tuple[Dataset, Dataset]:
-        """Load experiments' dataset. Only MNIST available."""
+        
         train_dataset = None
         test_dataset = None
+        
         if self.experiments_name == "mnist":
             path_to_data = "data/mnist/"
             dataset = MNISTSequenceDataset(path_to_data=path_to_data, type_seq="all")
             train_dataset, test_dataset = CPDDatasets.train_test_split_(
                 dataset, test_size=0.3, shuffle=True
             )
-            
-        elif self.experiments_name == "oops":
-            path_to_train_data = "data/oops/train_data"
-            path_to_val_data = "data/oops/val_data"
-            #train_dataset = OOPSSequenceDataset.get_subset(path_to_data=path_to_train_data,
-            #                                               subset_size=1000)
-            #test_dataset = OOPSSequenceDataset.get_subset(path_to_data=path_to_val_data,
-            #                                             subset_size=1000)
-            train_dataset = OOPSSequenceDataset(path_to_data=path_to_train_data)
-            test_dataset = OOPSSequenceDataset(path_to_data=path_to_val_data)
-
         elif self.experiments_name.startswith("synthetic"):
-            dataset = SyntheticNormalDataset(seq_len=128, num=1000, D=self.D, random_seed=123)
+            dataset = SyntheticNormalDataset(seq_len=128, num=1000, D=self.D)
             train_dataset, test_dataset = CPDDatasets.train_test_split_(
                 dataset, test_size=0.3, shuffle=True
             )
@@ -68,6 +66,15 @@ class CPDDatasets:
             path_to_data = "data/human_activity/"
             train_dataset = HumanActivityDataset(path_to_data=path_to_data, seq_len=20, train_flag=True)
             test_dataset = HumanActivityDataset(path_to_data=path_to_data, seq_len=20, train_flag=False)
+            
+        elif self.experiments_name == "explosion":
+            # TODO
+            pass
+        
+        elif self.experiments_name == "car_accident":
+            # TODO
+            pass
+        
         return train_dataset, test_dataset
 
     @staticmethod
@@ -83,6 +90,9 @@ class CPDDatasets:
             - train dataset
             - test dataset
         """
+        
+        fix_seeds(0)
+        
         len_dataset = len(dataset)
         idx = np.arange(len_dataset)
 
@@ -100,6 +110,9 @@ class CPDDatasets:
     def get_subset_(
         dataset: Dataset, subset_size: int, shuffle: bool = True
     ) -> Dataset:
+        
+        fix_seeds(0)
+        
         len_dataset = len(dataset)
         idx = np.arange(len_dataset)
 
@@ -108,19 +121,22 @@ class CPDDatasets:
         else:
             idx = idx[: subset_size]
         subset = Subset(dataset, idx)
-        return subset  
-    
+        return subset
 
 
 class MNISTSequenceDataset(Dataset):
     """Class for Dataset consists of sequences of MNIST images."""
 
-    def __init__(self, path_to_data: str, 
-                 type_seq: str = "all", baseline: bool = False) -> None:
+    def __init__(self,
+                 path_to_data: str, 
+                 type_seq: str = "all",
+                 baseline: bool = False
+                ) -> None:
         """Initialize datasets' parameters.
 
         :param path_to_data: path to folders with MNIST sequences
         :param type_seq: type of data for loading (only normal, only anomaly, all)
+        :param baseline: if True, using baseline datasets
         """
         super().__init__()
 
@@ -151,7 +167,6 @@ class MNISTSequenceDataset(Dataset):
                     type_seq
                 )
             )
-        
         
         self.baseline = baseline
 
@@ -208,83 +223,16 @@ class MNISTSequenceDataset(Dataset):
         :param frame: image
         :return: image in gray scale
         """
-        return frame[:, :, 0]
-
-class OOPSSequenceDataset(Dataset):
-    """Class for Dataset consists of sequences of OOPS images."""
-
-    def __init__(self, path_to_data: str) -> None:
-        """Initialize datasets' parameters.
-
-        :param path_to_data: path to folders with OOPS sequences
-        """
-        super().__init__()
-
-        # set paths to data
-        self.path_to_data = path_to_data
-
-        self.sample_paths = [
-            os.path.join(self.path_to_data, x)
-            for x in os.listdir(self.path_to_data)
-        ]
-
-    def __len__(self) -> int:
-        """Get datasets' length.
-
-        :return: length of dataset
-        """
-        return len(self.sample_paths)
-
-    def __getitem__(self, idx: int) -> Tuple[np.array, np.array]:
-        """Get one images' sequence and corresponding labels from dataset.
-
-        :param idx: index of element in dataset
-        :return: tuple of
-             - sequence of images
-             - sequence of labels
-        """
-        # read sequences of images
-        path_img = self.sample_paths[idx]
-        seq_images = ImageSequence(os.path.join(path_img, "*_*.png"))
-        seq_images = np.transpose(seq_images, (0, 3, 1, 2)).astype(float)
-        # TODO: fix
-        seq_images = np.transpose(seq_images, (1, 0, 2, 3)).astype(np.float64)
-
-        seq_labels = sorted(os.listdir(path_img), key=lambda x: int(x.split("_")[0]))
-
-        # get corresponding labels
-        seq_labels = [int(x.split(".png")[0].split("_")[1]) for x in seq_labels]
-        seq_labels = (np.array(seq_labels) != seq_labels[0]).astype(int)
-
-        return seq_images, seq_labels
-    
-    @staticmethod
-    def get_subset(path_to_data: str, subset_size: int, random_seed=123):
-        """Get subset of dataset.
-
-        :param path_to_data: path to data
-        :param subset_size: size of subset
-        :param random_seed: fix seed for reproduction
-        
-        :return: subset of dataset with corresponded size
-        """
-        
-        dataset = OOPSSequenceDataset(path_to_data)
-        
-        np.random.seed(random_seed)
-        idx = np.random.randint(0, len(dataset), size=subset_size)
-        
-        return Subset(dataset, idx)  
-    
+        return frame[:, :, 0] 
     
 class SyntheticNormalDataset(Dataset):
 
-    def __init__(self, seq_len: int, num: int, D=1, random_seed=123):
+    def __init__(self, seq_len: int, num: int, D=1):
 
         super().__init__()
 
-        self.data, self.labels = SyntheticNormalDataset.generate_synthetic_nD_data(seq_len, num, 
-                                                                                   D=D, random_seed=123)
+        self.data, self.labels = SyntheticNormalDataset.generate_synthetic_nD_data(seq_len, num, D=D)
+        
     def __len__(self) -> int:
         """Get datasets' length.
 
@@ -297,8 +245,21 @@ class SyntheticNormalDataset(Dataset):
         return self.data[idx], self.labels[idx]
 
     @staticmethod
-    def generate_synthetic_nD_data(seq_len, num, D=1, random_seed=123, multi_dist=False):
-        torch.manual_seed(random_seed)
+    def generate_synthetic_nD_data(seq_len, num, D=1, multi_dist=False) 
+                                    -> Tuple[List[torch.Tensor], List[torch.Tensor]]:
+            
+        """Generate Synthetic Normal nD sequences with and without a change point
+        
+        :param seq_len: desired length of the generated sequences
+        :num: total # of sequences to generate
+        :D: dimension of generated data (we have experiments with 1D and 100D synthetic normal data)
+        :multi_dist: if False, generate abnormal sequences with mean shift from 1 to mu = randint(1, 100)
+                     if True, generate sequences with mean shifts from random mu1 to random mu2
+        :return: tuple of
+                - list with generated sequences
+                - list with corresponding labels
+        """        
+        fix_seeds(0)
 
         idxs_changes = torch.randint(1, seq_len, (num // 2, ))
         
@@ -362,6 +323,8 @@ class HumanActivityDataset(Dataset):
         self.labels = normal_labels + anomaly_labels
         
     def load_data(self, path, train_flag=True):
+        
+        fix_seeds(0)
 
         if train_flag:
             type_ = "train"
@@ -386,6 +349,9 @@ class HumanActivityDataset(Dataset):
 
     
     def generate_normal_data(self, data, seq_len=20):
+        
+        fix_seeds(0)
+        
         slices = []
         labels = []
 
@@ -414,6 +380,9 @@ class HumanActivityDataset(Dataset):
 
     
     def generate_anomaly_data(self, data, seq_len=20):
+        
+        fix_seeds(0)
+        
         slices = []
         labels = []
 
