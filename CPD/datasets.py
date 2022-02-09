@@ -9,18 +9,26 @@ import pandas as pd
 from pims import ImageSequence
 from torch.utils.data import Dataset, Subset
 from torch.distributions.multivariate_normal import MultivariateNormal
+from CPD import models
+from torchvision import transforms
+from collections import defaultdict
+from torchvision.datasets.video_utils import VideoClips
+from tqdm import tqdm
+import av
+
 
 
 class CPDDatasets:
     """Class for experiments' datasets."""
 
-    def __init__(self, experiments_name: str, model_type='seq2seq') -> None:
+    def __init__(self, experiments_name: str, 
+                 model_type='seq2seq', random_seed=123) -> None:
         """Initialize class.
 
         :param experiments_name: type of experiments (only mnist available now!)
         """
         super().__init__()
-
+        self.random_seed = random_seed
         # TODO make 
         if experiments_name in [
             "human_activity",
@@ -45,7 +53,7 @@ class CPDDatasets:
             path_to_data = "data/mnist/"
             dataset = MNISTSequenceDataset(path_to_data=path_to_data, type_seq="all")
             train_dataset, test_dataset = CPDDatasets.train_test_split_(
-                dataset, test_size=0.3, shuffle=True
+                dataset, test_size=0.3, shuffle=True, random_seed=self.random_seed
             )
             
         elif self.experiments_name == "oops":
@@ -61,18 +69,38 @@ class CPDDatasets:
         elif self.experiments_name.startswith("synthetic"):
             dataset = SyntheticNormalDataset(seq_len=128, num=1000, D=self.D, random_seed=123)
             train_dataset, test_dataset = CPDDatasets.train_test_split_(
-                dataset, test_size=0.3, shuffle=True
+                dataset, test_size=0.3, shuffle=True, random_seed=self.random_seed
             )
             
         elif self.experiments_name == "human_activity":
             path_to_data = "data/human_activity/"
             train_dataset = HumanActivityDataset(path_to_data=path_to_data, seq_len=20, train_flag=True)
             test_dataset = HumanActivityDataset(path_to_data=path_to_data, seq_len=20, train_flag=False)
+            
+        elif self.experiments_name == "explosion":
+            path_to_data = "data/explosion/"
+            transform = transforms.Compose([
+                ToTensorVideo(),
+                ResizeVideo(224),
+                NormalizeVideo(mean=[0, 0, 0], std=[1, 1, 1])
+            ])
+
+            train_dataset = UCFVideoDataset(clip_length_in_frames=16, step_between_clips=16, 
+                                            path_to_data=path_to_data, 
+                                            path_to_annotation='UCF_train_time_markup.txt', 
+                                            video_transform=transform,
+                                            num_workers=0, fps=30)
+            test_dataset = UCFVideoDataset(clip_length_in_frames=16, step_between_clips=16, 
+                                           path_to_data=path_to_data, 
+                                           path_to_annotation='UCF_test_time_markup.txt', 
+                                           video_transform=transform,
+                                           num_workers=0, fps=30)
+            
         return train_dataset, test_dataset
 
     @staticmethod
     def train_test_split_(
-        dataset: Dataset, test_size: float = 0.3, shuffle: bool = True
+        dataset: Dataset, test_size: float = 0.3, shuffle: bool = True, random_seed: int = 123
     ) -> Tuple[Dataset, Dataset]:
         """Split dataset on train and test.
 
@@ -83,6 +111,8 @@ class CPDDatasets:
             - train dataset
             - test dataset
         """
+        random.seed(random_seed)
+        np.random.seed(random_seed)
         len_dataset = len(dataset)
         idx = np.arange(len_dataset)
 
@@ -98,8 +128,11 @@ class CPDDatasets:
     
     @staticmethod
     def get_subset_(
-        dataset: Dataset, subset_size: int, shuffle: bool = True
+        dataset: Dataset, subset_size: int, shuffle: bool = True, random_seed: int = 123
     ) -> Dataset:
+        random.seed(random_seed)
+        np.random.seed(random_seed)
+        
         len_dataset = len(dataset)
         idx = np.arange(len_dataset)
 
@@ -298,7 +331,7 @@ class SyntheticNormalDataset(Dataset):
 
     @staticmethod
     def generate_synthetic_nD_data(seq_len, num, D=1, random_seed=123, multi_dist=False):
-        torch.manual_seed(random_seed)
+        models.fix_seeds(random_seed)
 
         idxs_changes = torch.randint(1, seq_len, (num // 2, ))
         
@@ -465,8 +498,6 @@ class HumanActivityDataset(Dataset):
                         'fBodyAcc-Mean-2', 'fBodyAcc-Mean-3', 'fBodyGyro-Mean-1', 'fBodyGyro-Mean-2', 
                         'fBodyGyro-Mean-3', 'fBodyAccMag-Mean-1', 'fBodyAccJerkMag-Mean-1', 
                         'fBodyGyroMag-Mean-1', 'fBodyGyroJerkMag-Mean-1']        
-        
-        
         return self.features[idx][sel_features].iloc[:, :-2].values, self.labels[idx]    
     
     
@@ -505,3 +536,200 @@ class BaselineDataset(Dataset):
             labels = max(self.cpd_dataset[global_idx][1][local_idx: local_idx + self.subseq_len])
             
         return images, labels    
+
+class UCFVideoDataset(Dataset):
+    def __init__(self,
+             clip_length_in_frames,
+             step_between_clips,
+             path_to_data,
+             path_to_annotation,
+             video_transform=None, 
+             num_workers=0, fps=30):
+        
+        super().__init__()
+
+        self.clip_length_in_frames = clip_length_in_frames
+        self.step_between_clips = step_between_clips
+        self.num_workers = num_workers
+        self.fps = fps
+        
+        # IO
+        self.path_to_data = path_to_data
+        self.video_list = self._get_video_list(dataset_path=self.path_to_data)
+
+        # annotation loading
+        dict_metadata, dict_types = self._parce_annotation(path_to_annotation)    
+        
+        # data loading
+        self.video_clips = VideoClips(video_paths=self.video_list,
+                                      clip_length_in_frames=self.clip_length_in_frames,
+                                      frames_between_clips=self.step_between_clips, 
+                                      frame_rate = self.fps,
+                                      num_workers=self.num_workers)
+        
+        
+        # labelling
+        self.video_clips.compute_clips(self.clip_length_in_frames, self.step_between_clips, self.fps)
+        self._set_labels_to_clip(dict_metadata)
+        
+        # transforers 
+        self.video_transform=video_transform
+        
+    
+    def __len__(self):
+        return len(self.valid_idxs)
+        
+    def __getitem__(self, idx):
+        idx = self.valid_idxs[idx]
+        video, _, _, _ = self.video_clips.get_clip(idx)
+        video_idx, clip_idx = self.video_clips.get_clip_location(idx)
+        video_path = self.video_clips.video_paths[video_idx]
+        label = np.array(self.video_clips.labels[video_idx][clip_idx], dtype=int)
+        if self.video_transform is not None:
+            video = self.video_transform(video)        
+        return video, label
+
+    def _set_labels_to_clip(self, dict_metadata):
+        #self.video_clips.labels = []
+        self.video_clips.labels = []
+        self.valid_idxs = list(range(0, len(self.video_clips)))
+            
+        
+        global_clip_idx = -1
+        for video_idx, vid_clips in tqdm(enumerate(self.video_clips.clips), total=len(self.video_clips.clips)):
+            video_labels = []
+            
+            video_path = self.video_clips.video_paths[video_idx]
+            video_name = os.path.basename(video_path)
+            
+            # get time unit to map frame with its time appearance
+            time_unit = av.open(video_path, metadata_errors='ignore').streams[0].time_base
+            
+            # get start, change point, end from annotation
+            annotated_time = dict_metadata[video_name]            
+            
+            cp_video_idx = len(vid_clips)
+                
+            for clip_idx, clip in enumerate(vid_clips):
+                clip_labels = []                
+                global_clip_idx += 1
+                
+                clip_start = float(time_unit * clip[0].item())
+                clip_end = float(time_unit * clip[-1].item())
+                
+                not_suit_flag = True   
+                for start_time, change_point, end_time in annotated_time:
+                    if end_time != -1.0:
+                        if (clip_end > end_time) or (clip_start > end_time) or (clip_start < start_time):
+                            continue
+                    else:
+                        if clip_start < start_time:
+                            continue
+                    if (clip_start > change_point) and (change_point != -1.0):
+                        # "abnormal" clip appears after change point                            
+                        continue
+                    else:
+                        not_suit_flag = False
+                        # proper clip                        
+                        break
+                                           
+                if not_suit_flag:
+                    # drop clip idx from dataset 
+                    video_labels.append([])
+                    self.valid_idxs.remove(global_clip_idx)
+                else:
+                    for frame in clip:
+                        frame_time = float(time_unit * frame.item())
+                        # due to different rounding while moving from frame to time
+                        # the true change point is delayed by ~1 frame
+                        # so, we've added the little margin
+                        if (frame_time >= change_point - 1e-6) and (change_point != -1.0):
+                            clip_labels.append(1)
+                        else:
+                            clip_labels.append(0)
+                    video_labels.append(clip_labels)
+            self.video_clips.labels.append(video_labels)
+        return self 
+        
+    def _get_video_list(self, dataset_path):
+        assert os.path.exists(dataset_path), "VideoIter:: failed to locate: `{}'".format(dataset_path)
+        vid_list = []
+        for path, subdirs, files in os.walk(dataset_path):
+            for name in files:
+                if 'mp4' not in name:
+                    continue
+                vid_list.append(os.path.join(path, name))
+        return vid_list             
+    
+    def _parce_annotation(self, path_to_annotation):
+        dict_metadata = defaultdict(list)
+        dict_types = defaultdict(list)
+
+        with open(path_to_annotation) as f:
+            metadata = f.readlines()
+            for f in metadata:
+                #parce annotation 
+                f = f.replace('\n', '') 
+                f = f.split('  ')
+                video_name = f[0]
+                video_type = f[1]        
+                change_time = float(f[3])
+                video_borders = (float(f[2]), float(f[4]))
+                dict_metadata[video_name].append((video_borders[0], change_time, video_borders[1]))
+                dict_types[video_name].append(video_type)
+        return dict_metadata, dict_types        
+    
+#######################################################################################################
+# https://github.com/ekosman/AnomalyDetectionCVPR2018-Pytorch/
+def to_tensor(clip):
+    return clip.float().permute(3, 0, 1, 2) / 255.0
+
+def normalize(clip, mean, std, inplace=False):
+    if not inplace:
+        clip = clip.clone()
+    mean = torch.as_tensor(mean, dtype=clip.dtype, device=clip.device)
+    std = torch.as_tensor(std, dtype=clip.dtype, device=clip.device)
+    clip.sub_(mean[:, None, None, None]).div_(std[:, None, None, None])
+    return clip    
+
+def resize(clip, target_size, interpolation_mode):
+    return torch.nn.functional.interpolate(
+        clip, size=target_size, mode=interpolation_mode, align_corners=False
+    )    
+
+class ToTensorVideo(object):
+    def __init__(self):
+        pass
+
+    def __call__(self, clip):
+        return to_tensor(clip)
+
+    def __repr__(self):
+        return self.__class__.__name__
+    
+
+class NormalizeVideo(object):
+    def __init__(self, mean, std, inplace=False):
+        self.mean = mean
+        self.std = std
+        self.inplace = inplace
+
+    def __call__(self, clip):
+        return normalize(clip, self.mean, self.std, self.inplace)
+
+    def __repr__(self):
+        return self.__class__.__name__ + '(mean={0}, std={1}, inplace={2})'.format(
+            self.mean, self.std, self.inplace)
+    
+    
+class ResizeVideo:
+    def __init__(
+            self,
+            size,
+            interpolation_mode="bilinear"
+    ):
+        self.size = size
+        self.interpolation_mode = interpolation_mode
+
+    def __call__(self, clip):
+        return resize(clip, self.size, self.interpolation_mode)        
