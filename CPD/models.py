@@ -245,7 +245,7 @@ class CPD_model(pl.LightningModule):
         model: nn.Module = None,
         lr: float = 1e-3,
         batch_size: int = 64,
-        num_workers: int = 4,
+        num_workers: int = 2,
     ) -> None:
         """Initialize CPD model.
         :param experiment_type: type of data used for training
@@ -289,11 +289,9 @@ class CPD_model(pl.LightningModule):
                 T = 32
 
         elif experiments_name == 'human_activity':
-        
             if model is None:
                 # initialize default base model for Human Activity experiment
                 model = LSTM(input_size=561, n_layers=1, hidden_dim=8, drop_prob=0.25)
-            
             if loss_type == 'CPD' and T is None:
                 T = 5
                 
@@ -301,7 +299,7 @@ class CPD_model(pl.LightningModule):
             # TODO
             pass
     
-        elif experiments_name == 'car_accident':
+        elif experiments_name == 'road_accidents':
             # TODO
             pass
     

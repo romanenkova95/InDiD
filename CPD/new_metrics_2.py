@@ -6,6 +6,7 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 import gc
+from BASELINES import tscp, klcpd
 
 
 def find_first_change(mask):    
@@ -73,7 +74,10 @@ def get_models_predictions(inputs, labels, model, model_type='seq2seq', subseq_l
             lab = labels[batch_n].to(device)
             
             if model_type == 'simple':
-                out = [model(inp[i].flatten().unsqueeze(0).float()).squeeze() for i in range(0, len(inp))]
+                #TODO FIX
+                #out = [model(inp[i].flatten().unsqueeze(0).float()).squeeze() for i in range(0, len(inp))]
+                out = [model(inp[:, i].unsqueeze(0).float()).squeeze() for i in range(0, len(inp))]
+                
             elif (model_type == 'weak_labels') and (subseq_len is not None):
                 out_end = [model(inp[i: i + subseq_len].flatten(1).unsqueeze(0).float()) for i in range(0, len(inp) - subseq_len)]
                 out = [torch.zeros(len(lab) - len(out_end), 1, device=device)]                
@@ -87,6 +91,10 @@ def get_models_predictions(inputs, labels, model, model_type='seq2seq', subseq_l
                 outs.append(out)
         outs = torch.stack(outs)
         true_labels = torch.stack(true_labels)                
+    elif model_type == 'tscp':
+        outs = tscp.get_tscp_output_2(model, inputs, model.window_1)
+    elif model_type == 'klcpd':
+        outs = klcpd.get_klcpd_output_2(model, inputs, model.window_1)
     else:
         outs = model(inputs)
     return outs, true_labels
@@ -248,8 +256,7 @@ def calculate_cover(real_change_ind, predicted_change_ind, seq_len):
         covers.append(cover_single(true_partition, pred_partition))
     
     return covers
-        
-        
+
 def F1_score(confusion_matrix):
     TN, FP, FN, TP = confusion_matrix
     f1_score = 2.0 * TP / (2 * TP + FN + FP)

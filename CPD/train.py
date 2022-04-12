@@ -20,7 +20,10 @@ def train_model(
     patience: int = None,
     gpus: int = 0,
     gradient_clip_val: float = 0.0,
-    seed: int = 0
+    seed: int = 0,
+    monitor: str = "val_loss",
+    min_delta: float = 0.0,
+    check_val_every_n_epoch: int = 1
 ) -> models.CPD_model:
     
     """Initialize logger, callbacks, trainer and TRAIN CPD model
@@ -46,7 +49,7 @@ def train_model(
     
     if patience is not None:
         # initialize EarlyStopping callback
-        early_stop_callback = EarlyStopping(monitor="val_loss", min_delta=0,
+        early_stop_callback = EarlyStopping(monitor=monitor, min_delta=min_delta,
                                             patience=patience, verbose=True, mode="min")
         callbacks.append(early_stop_callback)
 
@@ -57,7 +60,7 @@ def train_model(
         max_epochs=max_epochs,
         gpus=gpus,
         benchmark=True,
-        check_val_every_n_epoch=1,
+        check_val_every_n_epoch=check_val_every_n_epoch,
         gradient_clip_val=gradient_clip_val,
         logger=logger,
         callbacks=callbacks
@@ -120,3 +123,23 @@ def run_experiments(
     print('InDiD model is trained!')
 
     return cpd_model, bce_model, indid_model_2
+
+def write_metrics_to_file(filename, metrics, seed):
+    best_th_f1, best_time_to_FA, best_delay, auc, best_conf_matrix, best_f1, best_cover, best_th_cover, max_cover = metrics
+    
+    with open(filename, 'a') as f:
+        f.writelines('SEED: {}\n'.format(seed))
+        f.writelines('AUC: {}\n'.format(auc))
+        f.writelines('Time to FA {}, delay detection {} for best-F1 threshold: {}\n'. format(round(best_time_to_FA, 4), 
+                                                                                       round(best_delay, 4), 
+                                                                                       round(best_th_f1, 4)))
+        f.writelines('TN {}, FP {}, FN {}, TP {} for best-F1 threshold: {}\n'. format(best_conf_matrix[0],
+                                                                               best_conf_matrix[1],
+                                                                               best_conf_matrix[2],
+                                                                               best_conf_matrix[3],
+                                                                               round(best_th_f1, 4)))
+        f.writelines('Max F1 {}: for best-F1 threshold {}\n'.format(round(best_f1, 4), round(best_th_f1, 4)))
+        f.writelines('COVER {}: for best-F1 threshold {}\n'.format(round(best_cover, 4), round(best_th_f1, 4)))
+
+        f.writelines('Max COVER {}: for threshold {}\n'.format(max_cover, best_th_cover))
+        f.writelines('----------------------------------------------------------------------\n')

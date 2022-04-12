@@ -4,7 +4,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
-
+from tqdm import tqdm
 
 def find_change(mask):
     with_change, change_ind = np.where(mask == 1)    
@@ -27,7 +27,7 @@ def find_first_change(change_ind_dict):
 def calculate_errors(real_change_ind, predicted_change_ind, seq_len):
     TN, TP, FN, FP = 0, 0, 0, 0
     FP_delay, delay = [], []
-    
+        
     assert(len(real_change_ind) == len(predicted_change_ind))
         
     for (real, pred) in zip(real_change_ind.values(), predicted_change_ind.values()):
@@ -62,19 +62,17 @@ def calculate_errors(real_change_ind, predicted_change_ind, seq_len):
     return TN, FP, FN, TP, FP_delay, delay
 
 def calculate_metrics(true_labels, predictions):
-
+    
     mask_real = ~true_labels.eq(true_labels[:, 0][0])
     mask_predicted = ~predictions.eq(true_labels[:, 0][0])
     seq_len = true_labels.shape[1]
 
-    real_change_ind = find_change(mask_real)
+    real_change_ind = find_change(mask_real)    
     predicted_change_ind = find_change(mask_predicted)
 
     real_change_ind = find_first_change(real_change_ind)
     predicted_change_ind = find_first_change(predicted_change_ind)
 
-
-    seq_len = len(true_labels[0, :])
     TN, FP, FN, TP, FP_delay, delay = calculate_errors(real_change_ind, predicted_change_ind, seq_len)
     confusion_matrix = (TN, FP, FN, TP)
     return confusion_matrix, FP_delay, delay
@@ -93,11 +91,17 @@ def get_models_predictions(inputs, labels, model, model_type='seq2seq', subseq_l
             
             if model_type == 'simple':
                 out = [model(inp[i].flatten().unsqueeze(0).float()).squeeze() for i in range(0, len(inp))]
-                true_labels += [lab]
             elif (model_type == 'weak_labels') and (subseq_len is not None):
-                out = [model(inp[i: i + subseq_len].flatten(1).unsqueeze(0).float()).squeeze() for i in range(0, len(inp) - subseq_len)]
-                true_labels += lab[(len(lab) - len(out)):].unsqueeze(0)        
-            outs.append(torch.stack(out))                    
+                out_end = [model(inp[i: i + subseq_len].flatten(1).unsqueeze(0).float()) for i in range(0, len(inp) - subseq_len)]
+                out = [torch.zeros(len(lab) - len(out_end), 1, device=device)]                
+                out.extend(out_end)
+                out = torch.cat(out)
+            true_labels += [lab]
+            #TODO: fix
+            try:
+                outs.append(torch.stack(out))
+            except:
+                outs.append(out)
         outs = torch.stack(outs)
         true_labels = torch.stack(true_labels)                
     else:
@@ -475,7 +479,7 @@ def evaluation_pipeline(model, test_dataloader, threshold_list, device='cuda', v
     f1_dict = {}
     f1_lib_dict = {}
 
-    for th in threshold_list:
+    for th in tqdm(threshold_list):
         (
             tp_number,
             tn_number,

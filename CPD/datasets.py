@@ -15,6 +15,18 @@ from collections import defaultdict
 from torchvision.datasets.video_utils import VideoClips
 from tqdm import tqdm
 import av
+import pickle
+
+from torchvision.transforms import Compose, Lambda
+from torchvision.transforms._transforms_video import (
+    CenterCropVideo,
+    NormalizeVideo,
+)
+from pytorchvideo.transforms import (
+    ApplyTransformToKey,
+    ShortSideScale,
+    UniformTemporalSubsample
+)
 
 
 
@@ -35,6 +47,7 @@ class CPDDatasets:
             "mnist",
             "explosion",
             "oops",
+            "road_accidents"
         ]:
             self.experiments_name = experiments_name
         elif experiments_name.startswith('synthetic'):
@@ -79,22 +92,56 @@ class CPDDatasets:
             
         elif self.experiments_name == "explosion":
             path_to_data = "data/explosion/"
-            transform = transforms.Compose([
-                ToTensorVideo(),
-                ResizeVideo(224),
-                NormalizeVideo(mean=[0, 0, 0], std=[1, 1, 1])
-            ])
+            # https://pytorch.org/hub/facebookresearch_pytorchvideo_resnet/
+            
+            mean = [0.45, 0.45, 0.45]
+            std = [0.225, 0.225, 0.225]
+            side_size = 256
+            crop_size = 256
 
-            train_dataset = UCFVideoDataset(clip_length_in_frames=16, step_between_clips=16, 
+            transform=Compose([
+                Lambda(lambda x: x/255.0),
+                NormalizeVideo(mean, std),
+                ShortSideScale(size=side_size),
+                CenterCropVideo(crop_size=(crop_size, crop_size))
+            ])
+            
+
+            train_dataset = UCFVideoDataset(clip_length_in_frames=16, step_between_clips=5, 
                                             path_to_data=path_to_data, 
                                             path_to_annotation='UCF_train_time_markup.txt', 
                                             video_transform=transform,
-                                            num_workers=0, fps=30)
+                                            num_workers=0, fps=30, sampler='equal')
             test_dataset = UCFVideoDataset(clip_length_in_frames=16, step_between_clips=16, 
                                            path_to_data=path_to_data, 
                                            path_to_annotation='UCF_test_time_markup.txt', 
                                            video_transform=transform,
-                                           num_workers=0, fps=30)
+                                           num_workers=0, fps=30, sampler='downsample_norm')
+        elif self.experiments_name == "road_accidents":
+            path_to_data = "data/road_accidents/"
+            # https://pytorch.org/hub/facebookresearch_pytorchvideo_resnet/
+            mean = [0.45, 0.45, 0.45]
+            std = [0.225, 0.225, 0.225]
+            side_size = 256
+            crop_size = 256
+
+            transform=Compose([
+                Lambda(lambda x: x/255.0),
+                NormalizeVideo(mean, std),
+                ShortSideScale(size=side_size),
+                CenterCropVideo(crop_size=(crop_size, crop_size))
+            ])
+            
+            train_dataset = UCFVideoDataset(clip_length_in_frames=16, step_between_clips=5, 
+                                            path_to_data=path_to_data, 
+                                            path_to_annotation='UCF_road_train_time_markup.txt', 
+                                            video_transform=transform,
+                                            num_workers=0, fps=30, sampler='equal')
+            test_dataset = UCFVideoDataset(clip_length_in_frames=16, step_between_clips=16, 
+                                           path_to_data=path_to_data, 
+                                           path_to_annotation='UCF_road_test_time_markup.txt', 
+                                           video_transform=transform,
+                                           num_workers=0, fps=30, sampler='downsample_norm')
             
         return train_dataset, test_dataset
 
@@ -222,6 +269,8 @@ class MNISTSequenceDataset(Dataset):
         seq_images = np.transpose(seq_images, (0, 3, 1, 2))[:, 0, :, :].astype(float)
         seq_labels = sorted(os.listdir(path_img), key=lambda x: int(x.split("_")[0]))
 
+        # normalize images
+        seq_images = seq_images / 255
         # get corresponding labels
         seq_labels = [int(x.split(".png")[0].split("_")[1]) for x in seq_labels]
         seq_labels = (np.array(seq_labels) != seq_labels[0]).astype(int)
@@ -500,43 +549,6 @@ class HumanActivityDataset(Dataset):
                         'fBodyGyroMag-Mean-1', 'fBodyGyroJerkMag-Mean-1']        
         return self.features[idx][sel_features].iloc[:, :-2].values, self.labels[idx]    
     
-    
-class BaselineDataset(Dataset):
-    def __init__(self, cpd_dataset, baseline_type='simple', subseq_len=None):
-        self.baseline_type = baseline_type
-        
-        self.cpd_dataset = cpd_dataset
-        self.N = len(cpd_dataset)
-        self.T = len(cpd_dataset.__getitem__(0)[0])
-        
-        self.subseq_len = subseq_len
-        
-        if (self.baseline_type == 'weak_labels') and (self.subseq_len is None):
-            raise ValueError('Please, set subsequence length.')
-        
-    def __len__(self):
-        if self.baseline_type == 'simple':
-            return self.N * self.T
-        elif (self.baseline_type == 'weak_labels'):
-            return self.N * (self.T - self.subseq_len + 1)
-        else:
-            raise ValueError("Wrong type of baseline.")
-        
-    def __getitem__(self, idx):
-        if self.baseline_type == 'simple':
-            global_idx = idx // self.T
-            local_idx = idx % self.T
-            images = self.cpd_dataset[global_idx][0][local_idx]
-            labels = self.cpd_dataset[global_idx][1][local_idx] 
-            
-        elif self.baseline_type == 'weak_labels':
-            global_idx = idx // (self.T - self.subseq_len + 1)
-            local_idx = idx %  (self.T - self.subseq_len + 1)
-            images = self.cpd_dataset[global_idx][0][local_idx: local_idx + self.subseq_len]
-            labels = max(self.cpd_dataset[global_idx][1][local_idx: local_idx + self.subseq_len])
-            
-        return images, labels    
-
 class UCFVideoDataset(Dataset):
     def __init__(self,
              clip_length_in_frames,
@@ -544,7 +556,7 @@ class UCFVideoDataset(Dataset):
              path_to_data,
              path_to_annotation,
              video_transform=None, 
-             num_workers=0, fps=30):
+             num_workers=0, fps=30, sampler='all'):
         
         super().__init__()
 
@@ -560,40 +572,70 @@ class UCFVideoDataset(Dataset):
         # annotation loading
         dict_metadata, dict_types = self._parce_annotation(path_to_annotation)    
         
-        # data loading
-        self.video_clips = VideoClips(video_paths=self.video_list,
-                                      clip_length_in_frames=self.clip_length_in_frames,
-                                      frames_between_clips=self.step_between_clips, 
-                                      frame_rate = self.fps,
-                                      num_workers=self.num_workers)
+        path_to_clips = '{}_clips_len_{}_step_{}_fps_{}.pth'.format(self.path_to_data.split('/')[1],
+                                                                    self.clip_length_in_frames, 
+                                                                    self.step_between_clips, 
+                                                                    self.fps)
+        if 'train' in path_to_annotation:
+            path_to_clips = 'train_' + path_to_clips
+        else:
+            path_to_clips = 'test_' + path_to_clips            
+            
+        if os.path.exists(path_to_clips):
+            with open(path_to_clips, 'rb') as clips:
+                self.video_clips = pickle.load(clips)
+        else:
+            # data loading
+            self.video_clips = VideoClips(video_paths=self.video_list,
+                                          clip_length_in_frames=self.clip_length_in_frames,
+                                          frames_between_clips=self.step_between_clips, 
+                                          frame_rate = self.fps,
+                                          num_workers=self.num_workers)
         
+            # labelling
+            self.video_clips.compute_clips(self.clip_length_in_frames, self.step_between_clips, self.fps)
+            self._set_labels_to_clip(dict_metadata)
         
-        # labelling
-        self.video_clips.compute_clips(self.clip_length_in_frames, self.step_between_clips, self.fps)
-        self._set_labels_to_clip(dict_metadata)
-        
-        # transforers 
+        # transforms and samplers
         self.video_transform=video_transform
+        self.sampler = sampler
         
+        # save dataset
+        if not os.path.exists(path_to_clips):
+            with open(path_to_clips, 'wb') as clips:
+                pickle.dump(self.video_clips, clips, protocol=pickle.HIGHEST_PROTOCOL)                
+        
+        if sampler=='equal':
+            self.video_clips.valid_idxs = self._equal_sampling()
+        elif sampler=='downsample_norm':
+            self.video_clips.valid_idxs = self._equal_sampling(downsample_normal=300)
+        elif sampler=='all':
+            pass
+        else:
+            raise ValueError('Wrong type of sampling')
+            
     
     def __len__(self):
-        return len(self.valid_idxs)
+        return len(self.video_clips.valid_idxs)
         
     def __getitem__(self, idx):
-        idx = self.valid_idxs[idx]
+        idx = self.video_clips.valid_idxs[idx]
         video, _, _, _ = self.video_clips.get_clip(idx)
         video_idx, clip_idx = self.video_clips.get_clip_location(idx)
         video_path = self.video_clips.video_paths[video_idx]
         label = np.array(self.video_clips.labels[video_idx][clip_idx], dtype=int)
+        # shoud be channel, seq_len, height, width
+        video = video.permute(3, 0, 1, 2)        
         if self.video_transform is not None:
-            video = self.video_transform(video)        
+            video = self.video_transform(video) 
         return video, label
 
     def _set_labels_to_clip(self, dict_metadata):
         #self.video_clips.labels = []
         self.video_clips.labels = []
-        self.valid_idxs = list(range(0, len(self.video_clips)))
-            
+        self.video_clips.valid_idxs = list(range(0, len(self.video_clips)))
+        self.video_clips.normal_idxs = defaultdict(list)
+        self.video_clips.cp_idxs = defaultdict(list)            
         
         global_clip_idx = -1
         for video_idx, vid_clips in tqdm(enumerate(self.video_clips.clips), total=len(self.video_clips.clips)):
@@ -636,17 +678,25 @@ class UCFVideoDataset(Dataset):
                 if not_suit_flag:
                     # drop clip idx from dataset 
                     video_labels.append([])
-                    self.valid_idxs.remove(global_clip_idx)
+                    self.video_clips.valid_idxs.remove(global_clip_idx)
                 else:
-                    for frame in clip:
-                        frame_time = float(time_unit * frame.item())
-                        # due to different rounding while moving from frame to time
-                        # the true change point is delayed by ~1 frame
-                        # so, we've added the little margin
-                        if (frame_time >= change_point - 1e-6) and (change_point != -1.0):
-                            clip_labels.append(1)
+                    if 'Normal' in video_path:
+                        clip_labels = list(np.zeros(len(clip)))
+                        self.video_clips.normal_idxs[video_path].append(global_clip_idx)
+                    else:
+                        for frame in clip:
+                            frame_time = float(time_unit * frame.item())
+                            # due to different rounding while moving from frame to time
+                            # the true change point is delayed by ~1 frame
+                            # so, we've added the little margin
+                            if (frame_time >= change_point - 1e-6) and (change_point != -1.0):
+                                clip_labels.append(1)
+                            else:
+                                clip_labels.append(0)
+                        if sum(clip_labels) > 0:
+                            self.video_clips.cp_idxs[video_path].append(global_clip_idx)                            
                         else:
-                            clip_labels.append(0)
+                            self.video_clips.normal_idxs[video_path].append(global_clip_idx)
                     video_labels.append(clip_labels)
             self.video_clips.labels.append(video_labels)
         return self 
@@ -677,7 +727,90 @@ class UCFVideoDataset(Dataset):
                 video_borders = (float(f[2]), float(f[4]))
                 dict_metadata[video_name].append((video_borders[0], change_time, video_borders[1]))
                 dict_types[video_name].append(video_type)
-        return dict_metadata, dict_types        
+        return dict_metadata, dict_types 
+    
+    def _equal_sampling(self, downsample_normal=None):
+        """Balance sets with and without changes so that the equal number 
+        of clips are sampled from each video (if possible)."""
+        
+        def _get_indexes(dict_normal, dict_cp):
+            """Get indexes of clips from totally normal video and from video with anomaly"""
+            cp_idxs = list(np.concatenate([idx for idx in dict_cp.values()]))
+
+            normal_idxs = []
+            normal_cp_idxs = []
+
+            for k,v in zip(dict_normal.keys(), dict_normal.values()):
+                if k in dict_cp.keys():
+                    normal_cp_idxs.extend(v)
+                else:
+                    normal_idxs.extend(v)
+            return cp_idxs, normal_idxs, normal_cp_idxs
+        
+        def _uniform_sampling(paths, dict_for_sampling, max_samples):
+            sample_idxs = []
+            for path in paths:
+                idxs = dict_for_sampling[path]                
+                if (len(idxs) > max_samples):
+                    step = len(idxs) // max_samples                    
+                    sample_idxs.extend(idxs[::step][:max_samples])
+                else:
+                    sample_idxs.extend(idxs[:max_samples])   
+            return sample_idxs
+
+        def _random_sampling(idxs_for_sampling, max_samples, random_seed=123):
+            np.random.seed(random_seed)
+            random.seed(random_seed)
+            sample_idxs = random.choices(idxs_for_sampling, k=max_samples)
+            return sample_idxs
+
+
+        sample_idxs = []
+
+        cp_paths = self.video_clips.cp_idxs.keys()
+        normal_paths = [x for x in self.video_clips.normal_idxs.keys() if x not in cp_paths]
+        normal_cp_paths = [x for x in self.video_clips.normal_idxs.keys() if x in cp_paths]
+                
+        cp_idxs, normal_idxs, normal_cp_idxs = _get_indexes(self.video_clips.normal_idxs, self.video_clips.cp_idxs)
+        cp_number = len(cp_idxs)
+        
+        
+        if downsample_normal is not None:
+            max_samples = downsample_normal
+        else:
+            max_samples = cp_number
+        
+        # sample ~50% of normal clips from video with change point
+        if len(cp_idxs) > len(normal_cp_paths):
+            normal_from_cp = _uniform_sampling(paths=normal_cp_paths, 
+                                               dict_for_sampling=self.video_clips.normal_idxs, 
+                                               max_samples=max_samples // (len(normal_cp_paths) * 2))
+        else:
+            print('Equal sampling is impossible, do random sampling.')
+            normal_from_cp = _random_sampling(idxs_for_sampling=normal_cp_idxs, 
+                                             max_samples=max_samples // 2)
+
+        # sample ~50% of normal clips from normal video
+        max_rest = (max_samples - len(normal_from_cp)) 
+        
+        if max_rest > len(self.video_clips.normal_idxs.keys()):
+            normal = _uniform_sampling(paths=normal_paths, 
+                                       dict_for_sampling=self.video_clips.normal_idxs, 
+                                       max_samples=max_rest // len(normal_paths))
+
+        else:
+            print('Equal sampling is impossible, do random sampling.')
+            normal = _random_sampling(idxs_for_sampling=normal_idxs, 
+                                     max_samples=max_rest)
+            
+        # sometimes it's still not enough because of different video length
+        if len(normal_from_cp) + len(normal) < max_samples:
+            extra = _random_sampling(idxs_for_sampling=normal_idxs + normal_cp_idxs, 
+                                     max_samples=max_samples-len(normal_from_cp)-len(normal))
+        else:
+            extra = []
+        sample_idxs = cp_idxs + normal_from_cp + normal + extra
+        return sample_idxs  
     
 #######################################################################################################
 # https://github.com/ekosman/AnomalyDetectionCVPR2018-Pytorch/
@@ -733,3 +866,85 @@ class ResizeVideo:
 
     def __call__(self, clip):
         return resize(clip, self.size, self.interpolation_mode)        
+    
+    
+#####################################################################################################
+    
+class BaselineDataset(Dataset):
+    def __init__(self, cpd_dataset, baseline_type='simple', subseq_len=None):
+        self.baseline_type = baseline_type
+        
+        def get_subset_(
+            dataset: Dataset, subset_size: int, shuffle: bool = True, random_seed: int = 123
+        ) -> Dataset:
+            random.seed(random_seed)
+            np.random.seed(random_seed)
+
+            len_dataset = len(dataset)
+            idx = np.arange(len_dataset)
+
+            if shuffle:
+                idx = random.sample(list(idx), min(subset_size, len_dataset))
+            else:
+                idx = idx[: subset_size]
+            subset = Subset(dataset, idx)
+            return subset  
+    
+    
+        self.cpd_dataset = cpd_dataset
+        self.N = len(cpd_dataset)
+        # TODO FIX         
+        self.T = len(cpd_dataset.__getitem__(0)[1])
+        
+        self.subseq_len = subseq_len
+        
+        if (self.baseline_type == 'weak_labels') and (self.subseq_len is None):
+            raise ValueError('Please, set subsequence length.')
+        
+    def __len__(self):
+        if self.baseline_type == 'simple':
+            return self.N * self.T
+        elif (self.baseline_type == 'weak_labels'):
+            return self.N * (self.T - self.subseq_len + 1)
+        else:
+            raise ValueError("Wrong type of baseline.")
+        
+    def __getitem__(self, idx):
+        if self.baseline_type == 'simple':
+            global_idx = idx // self.T
+            local_idx = idx % self.T
+            images = self.cpd_dataset[global_idx][0]
+            images = images[:, local_idx]
+            labels = self.cpd_dataset[global_idx][1][local_idx] 
+            
+        elif self.baseline_type == 'weak_labels':
+            global_idx = idx // (self.T - self.subseq_len + 1)
+            local_idx = idx %  (self.T - self.subseq_len + 1)
+            images = self.cpd_dataset[global_idx][0][:, local_idx: local_idx + self.subseq_len]
+            labels = max(self.cpd_dataset[global_idx][1][:, local_idx: local_idx + self.subseq_len])
+            
+        return images, labels    
+
+
+class TSCPDataset(Dataset):
+    def __init__(self, experiments_name, window, train_flag=True):
+        self.window = window
+        self.cpd_dataset = CPDDatasets(experiments_name, model_type='seq2seq', random_seed=123).get_dataset_()
+        
+        if train_flag:
+            self.cpd_dataset = self.cpd_dataset[0]
+        else:
+            self.cpd_dataset = self.cpd_dataset[1]            
+        
+    def __len__(self):
+        return len(self.cpd_dataset)
+        
+    def __getitem__(self, idx):
+        images, labels = self.cpd_dataset.__getitem__(idx)
+        history = images[:self.window]
+        future = images[self.window:2*self.window]
+        # TODO think how to rewrite
+        #labels = np.argmax(labels)
+            
+        return (history, future), labels    
+
