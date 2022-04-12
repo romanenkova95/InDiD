@@ -1,0 +1,214 @@
+RoadAccidents001_x264.mp4  Road accident  0.0  7.6  -1.0
+RoadAccidents002_x264.mp4  Road accident  0.0  8.3333333333  -1.0
+RoadAccidents003_x264.mp4  Road accident  0.0  8.7666666667  17.6666666667
+RoadAccidents003_x264.mp4  Normal  17.7  -1.0  -1.0
+RoadAccidents004_x264.mp4  Road accident  0.0  4.8333333333  -1.0
+RoadAccidents005_x264.mp4  Road accident  0.0  2.6666666667  -1.0
+RoadAccidents006_x264.mp4  Road accident  0.0  3.4666666667  8.0
+RoadAccidents006_x264.mp4  Normal  8.0333333333  -1.0  -1.0
+RoadAccidents007_x264.mp4  Road accident  0.0  9.7666666667  -1.0
+RoadAccidents008_x264.mp4  Road accident  0.0  7.8333333333  -1.0
+RoadAccidents009_x264.mp4  Road accident  0.0  6.9  -1.0
+RoadAccidents010_x264.mp4  Road accident  0.0  7.8  -1.0
+RoadAccidents011_x264.mp4  Road accident  0.0  9.0  -1.0
+RoadAccidents012_x264.mp4  Road accident  0.0  8.3666666667  -1.0
+RoadAccidents013_x264.mp4  Road accident  0.0  12.4333333333  -1.0
+RoadAccidents014_x264.mp4  Road accident  0.0  8.3333333333  -1.0
+RoadAccidents015_x264.mp4  Road accident  0.0  21.2333333333  -1.0
+RoadAccidents016_x264.mp4  Road accident  0.0  16.8  -1.0
+RoadAccidents017_x264.mp4  Road accident  0.0  2.6333333333  6.0
+RoadAccidents017_x264.mp4  Normal  6.0333333333  -1.0  -1.0
+RoadAccidents018_x264.mp4  Road accident  0.2  11.6666666667  -1.0
+RoadAccidents019_x264.mp4  Road accident  0.0  26.0333333333  -1.0
+RoadAccidents020_x264.mp4  Road accident  0.0  21.2333333333  -1.0
+RoadAccidents021_x264.mp4  Road accident  0.0  1.6  -1.0
+RoadAccidents022_x264.mp4  Road accident  0.0  4.3  -1.0
+RoadAccidents023_x264.mp4  Road accident  0.0  39.0  39.4666666667
+RoadAccidents023_x264.mp4  Normal  39.5  -1.0  -1.0
+RoadAccidents024_x264.mp4  Road accident  0.0  7.0666666667  -1.0
+RoadAccidents025_x264.mp4  Road accident  0.0  13.1333333333  -1.0
+RoadAccidents026_x264.mp4  Road accident  0.0  2.3666666667  -1.0
+RoadAccidents027_x264.mp4  Road accident  0.0  2.4666666667  -1.0
+RoadAccidents028_x264.mp4  Normal  0.0  -1.0  5.8333333333
+RoadAccidents028_x264.mp4  Road accident  5.8666666667  6.5666666667  13.1333333333
+RoadAccidents028_x264.mp4  Road accident  13.1666666667  13.1666666667  -1.0
+RoadAccidents029_x264.mp4  Road accident  0.0  2.2666666667  11.8333333333
+RoadAccidents029_x264.mp4  Normal  11.8666666667  -1.0  -1.0
+RoadAccidents030_x264.mp4  Road accident  0.0  35.1  -1.0
+RoadAccidents031_x264.mp4  Road accident  0.0  1.3  -1.0
+RoadAccidents032_x264.mp4  Road accident  0.0  11.2333333333  13.8666666667
+RoadAccidents032_x264.mp4  Road accident  13.9  15.0  28.1666666667
+RoadAccidents033_x264.mp4  Road accident  0.0  8.5  -1.0
+RoadAccidents034_x264.mp4  Road accident  0.0  6.6333333333  -1.0
+RoadAccidents035_x264.mp4  Road accident  0.0  1.0666666667  -1.0
+RoadAccidents036_x264.mp4  Road accident  0.0  4.6333333333  6.5666666667
+RoadAccidents037_x264.mp4  Road accident  0.0  25.8333333333  -1.0
+RoadAccidents038_x264.mp4  Road accident  0.0  2.8666666667  -1.0
+RoadAccidents039_x264.mp4  Road accident  0.0  2.2666666667  -1.0
+RoadAccidents040_x264.mp4  Road accident  4.9  14.2  49.4666666667
+RoadAccidents041_x264.mp4  Road accident  0.0  0.0  -1.0
+RoadAccidents042_x264.mp4  Road accident  0.0  12.7666666667  26.4333333333
+RoadAccidents043_x264.mp4  Road accident  0.0  2.3333333333  -1.0
+RoadAccidents044_x264.mp4  Road accident  0.0  2.8333333333  8.0333333333
+RoadAccidents046_x264.mp4  Road accident  0.0  6.9  14.9333333333
+RoadAccidents047_x264.mp4  Road accident  1.1666666667  6.0666666667  -1.0
+RoadAccidents048_x264.mp4  Road accident  0.0  8.6  -1.0
+RoadAccidents049_x264.mp4  Road accident  1.8  12.3333333333  22.9333333333
+RoadAccidents050_x264.mp4  Road accident  0.0  9.8333333333  -1.0
+RoadAccidents051_x264.mp4  Road accident  0.0  7.0666666667  -1.0
+RoadAccidents052_x264.mp4  Road accident  0.0  4.2333333333  -1.0
+RoadAccidents053_x264.mp4  Road accident  16.8666666667  20.9333333333  -1.0
+RoadAccidents054_x264.mp4  Road accident  5.0333333333  15.0666666667  39.9333333333
+RoadAccidents055_x264.mp4  Road accident  1.3666666667  11.8333333333  21.6
+RoadAccidents055_x264.mp4  Road accident  21.6333333333  25.3  -1.0
+RoadAccidents056_x264.mp4  Road accident  6.9666666667  8.8  16.7333333333
+RoadAccidents057_x264.mp4  Road accident  0.0  17.1  43.0
+RoadAccidents058_x264.mp4  Road accident  0.0  9.4333333333  -1.0
+RoadAccidents059_x264.mp4  Road accident  0.0  5.1666666667  -1.0
+RoadAccidents060_x264.mp4  Road accident  0.0  5.9  -1.0
+RoadAccidents061_x264.mp4  Road accident  0.0  10.7  -1.0
+RoadAccidents062_x264.mp4  Road accident  0.0  1.9  98.4666666667
+RoadAccidents062_x264.mp4  Road accident  98.5  103.9666666667  -1.0
+RoadAccidents063_x264.mp4  Road accident  0.0  39.1  39.4666666667
+RoadAccidents063_x264.mp4  Normal  39.5  -1.0  -1.0
+RoadAccidents064_x264.mp4  Road accident  0.0  16.3666666667  -1.0
+RoadAccidents065_x264.mp4  Road accident  0.0  2.2666666667  -1.0
+RoadAccidents066_x264.mp4  Road accident  0.0  6.8  -1.0
+RoadAccidents067_x264.mp4  Road accident  0.0  17.4  -1.0
+RoadAccidents068_x264.mp4  Road accident  2.5  20.4  57.0
+RoadAccidents069_x264.mp4  Road accident  0.0  3.7  -1.0
+RoadAccidents070_x264.mp4  Road accident  0.0  9.1  -1.0
+RoadAccidents071_x264.mp4  Road accident  0.0  12.9333333333  14.6333333333
+RoadAccidents072_x264.mp4  Road accident  0.0  19.6  -1.0
+RoadAccidents073_x264.mp4  Road accident  0.0  15.3666666667  -1.0
+RoadAccidents074_x264.mp4  Road accident  1.6333333333  13.4  33.9333333333
+RoadAccidents074_x264.mp4  Road accident  34.2666666667  40.5  62.2
+RoadAccidents075_x264.mp4  Road accident  0.0  3.1666666667  -1.0
+RoadAccidents076_x264.mp4  Road accident  0.0  42.2  -1.0
+RoadAccidents078_x264.mp4  Road accident  0.0  50.1666666667  87.9333333333
+RoadAccidents078_x264.mp4  Normal  87.9666666667  -1.0  -1.0
+RoadAccidents079_x264.mp4  Road accident  0.8333333333  4.4333333333  25.5666666667
+RoadAccidents079_x264.mp4  Road accident  26.3  26.8  -1.0
+RoadAccidents080_x264.mp4  Road accident  0.0  6.2333333333  11.6
+RoadAccidents080_x264.mp4  Road accident  11.6333333333  13.7  -1.0
+RoadAccidents081_x264.mp4  Road accident  5.0333333333  15.8333333333  24.4666666667
+RoadAccidents081_x264.mp4  Road accident  24.5  26.9  34.5333333333
+RoadAccidents082_x264.mp4  Road accident  0.0  19.6333333333  -1.0
+RoadAccidents083_x264.mp4  Road accident  0.0  9.7666666667  10.8
+RoadAccidents083_x264.mp4  Normal  10.8333333333  -1.0  -1.0
+RoadAccidents084_x264.mp4  Road accident  0.0  13.3666666667  -1.0
+RoadAccidents085_x264.mp4  Road accident  0.0  14.4666666667  -1.0
+RoadAccidents086_x264.mp4  Road accident  0.0  7.0  -1.0
+RoadAccidents087_x264.mp4  Road accident  0.0  39.2666666667  -1.0
+RoadAccidents088_x264.mp4  Road accident  0.0  5.3  14.7333333333
+RoadAccidents088_x264.mp4  Road accident  14.9333333333  26.4  -1.0
+RoadAccidents089_x264.mp4  Road accident  0.0  13.7333333333  -1.0
+RoadAccidents090_x264.mp4  Road accident  0.0  8.5  -1.0
+RoadAccidents091_x264.mp4  Road accident  0.0  15.5333333333  -1.0
+RoadAccidents092_x264.mp4  Road accident  0.0  3.5333333333  -1.0
+RoadAccidents093_x264.mp4  Road accident  0.0  7.4666666667  -1.0
+RoadAccidents094_x264.mp4  Road accident  0.0  5.4666666667  -1.0
+RoadAccidents095_x264.mp4  Road accident  0.0  9.6666666667  -1.0
+RoadAccidents096_x264.mp4  Road accident  0.0  4.7  9.0
+RoadAccidents096_x264.mp4  Normal  9.0333333333  -1.0  -1.0
+RoadAccidents097_x264.mp4  Road accident  0.0  19.9  -1.0
+RoadAccidents098_x264.mp4  Road accident  0.0  25.8333333333  -1.0
+RoadAccidents099_x264.mp4  Road accident  0.0  15.9666666667  -1.0
+RoadAccidents100_x264.mp4  Road accident  0.0  6.1333333333  -1.0
+RoadAccidents121_x264.mp4  Road accident  0.0  11.3  -1.0
+RoadAccidents144_x264.mp4  Road accident  0.0  5.5666666667  -1.0
+Normal_Videos_003_x264.mp4  Normal  0.0  -1.0  -1.0
+Normal_Videos_006_x264.mp4  Normal  0.0  -1.0  -1.0
+Normal_Videos_010_x264.mp4  Normal  0.0  -1.0  -1.0
+Normal_Videos_014_x264.mp4  Normal  0.0  -1.0  -1.0
+Normal_Videos_015_x264.mp4  Normal  0.0  -1.0  -1.0
+Normal_Videos_018_x264.mp4  Normal  0.0  -1.0  -1.0
+Normal_Videos_019_x264.mp4  Normal  0.0  -1.0  -1.0
+Normal_Videos_024_x264.mp4  Normal  0.0  -1.0  -1.0
+Normal_Videos_025_x264.mp4  Normal  0.0  -1.0  -1.0
+Normal_Videos_027_x264.mp4  Normal  0.0  -1.0  -1.0
+Normal_Videos_033_x264.mp4  Normal  0.0  -1.0  -1.0
+Normal_Videos_034_x264.mp4  Normal  0.0  -1.0  -1.0
+Normal_Videos_041_x264.mp4  Normal  0.0  -1.0  -1.0
+Normal_Videos_042_x264.mp4  Normal  0.0  -1.0  -1.0
+Normal_Videos_048_x264.mp4  Normal  0.0  -1.0  -1.0
+Normal_Videos_050_x264.mp4  Normal  0.0  -1.0  -1.0
+Normal_Videos_051_x264.mp4  Normal  0.0  -1.0  -1.0
+Normal_Videos_056_x264.mp4  Normal  0.0  -1.0  -1.0
+Normal_Videos_059_x264.mp4  Normal  0.0  -1.0  29.0666666667
+Normal_Videos_059_x264.mp4  Normal  31.6333333333  -1.0  -1.0
+Normal_Videos_063_x264.mp4  Normal  0.0  -1.0  -1.0
+Normal_Videos_067_x264.mp4  Normal  0.0  -1.0  -1.0
+Normal_Videos_070_x264.mp4  Normal  0.0  -1.0  31.8333333333
+Normal_Videos_070_x264.mp4  Normal  31.8666666667  -1.0  -1.0
+Normal_Videos_100_x264.mp4  Normal  0.0  -1.0  13.5666666667
+Normal_Videos_100_x264.mp4  Normal  14.6666666667  -1.0  -1.0
+Normal_Videos_129_x264.mp4  Normal  0.0  -1.0  -1.0
+Normal_Videos_150_x264.mp4  Normal  0.0  -1.0  -1.0
+Normal_Videos_168_x264.mp4  Normal  0.0  -1.0  -1.0
+Normal_Videos_175_x264.mp4  Normal  0.0  -1.0  50.0
+Normal_Videos_175_x264.mp4  Normal  50.1  -1.0  -1.0
+Normal_Videos_182_x264.mp4  Normal  0.0  -1.0  -1.0
+Normal_Videos_189_x264.mp4  Normal  0.0  -1.0  -1.0
+Normal_Videos_196_x264.mp4  Normal  0.0  -1.0  -1.0
+Normal_Videos_203_x264.mp4  Normal  0.0  -1.0  -1.0
+Normal_Videos_210_x264.mp4  Normal  0.0  -1.0  -1.0
+Normal_Videos_217_x264.mp4  Normal  0.0  -1.0  -1.0
+Normal_Videos_224_x264.mp4  Normal  0.0  -1.0  149.4
+Normal_Videos_224_x264.mp4  Normal  149.4333333333  -1.0  -1.0
+Normal_Videos_246_x264.mp4  Normal  0.0  -1.0  -1.0
+Normal_Videos_247_x264.mp4  Normal  0.0  -1.0  -1.0
+Normal_Videos_248_x264.mp4  Normal  0.0  -1.0  -1.0
+Normal_Videos_251_x264.mp4  Normal  0.0  -1.0  -1.0
+Normal_Videos_289_x264.mp4  Normal  0.0  -1.0  -1.0
+Normal_Videos_310_x264.mp4  Normal  0.0  -1.0  -1.0
+Normal_Videos_312_x264.mp4  Normal  0.0  -1.0  -1.0
+Normal_Videos_317_x264.mp4  Normal  0.0  -1.0  -1.0
+Normal_Videos_345_x264.mp4  Normal  0.0  -1.0  -1.0
+Normal_Videos_352_x264.mp4  Normal  0.0  -1.0  -1.0
+Normal_Videos_360_x264.mp4  Normal  0.0  -1.0  -1.0
+Normal_Videos_365_x264.mp4  Normal  0.0  -1.0  -1.0
+Normal_Videos_401_x264.mp4  Normal  0.0  -1.0  -1.0
+Normal_Videos_417_x264.mp4  Normal  0.0  -1.0  -1.0
+Normal_Videos_439_x264.mp4  Normal  0.0  -1.0  -1.0
+Normal_Videos_452_x264.mp4  Normal  0.0  -1.0  1.4
+Normal_Videos_452_x264.mp4  Normal  5.9  -1.0  9.6666666667
+Normal_Videos_452_x264.mp4  Normal  11.7666666667  -1.0  -1.0
+Normal_Videos_453_x264.mp4  Normal  0.0  -1.0  -1.0
+Normal_Videos_478_x264.mp4  Normal  0.5  -1.0  -1.0
+Normal_Videos_576_x264.mp4  Normal  0.0  -1.0  -1.0
+Normal_Videos_597_x264.mp4  Normal  0.0  -1.0  -1.0
+Normal_Videos_603_x264.mp4  Normal  0.0  -1.0  -1.0
+Normal_Videos_606_x264.mp4  Normal  0.0  -1.0  -1.0
+Normal_Videos_621_x264.mp4  Normal  0.0  -1.0  -1.0
+Normal_Videos_634_x264.mp4  Normal  0.0  -1.0  -1.0
+Normal_Videos_641_x264.mp4  Normal  0.0  -1.0  -1.0
+Normal_Videos_656_x264.mp4  Normal  0.0  -1.0  -1.0
+Normal_Videos_686_x264.mp4  Normal  0.0  -1.0  -1.0
+Normal_Videos_696_x264.mp4  Normal  0.0  -1.0  -1.0
+Normal_Videos_702_x264.mp4  Normal  0.0  -1.0  -1.0
+Normal_Videos_704_x264.mp4  Normal  0.0  -1.0  -1.0
+Normal_Videos_710_x264.mp4  Normal  0.0  -1.0  -1.0
+Normal_Videos_717_x264.mp4  Normal  0.0  -1.0  -1.0
+Normal_Videos_722_x264.mp4  Normal  0.0  -1.0  29.5666666667
+Normal_Videos_722_x264.mp4  Normal  32.8666666667  -1.0  41.6333333333
+Normal_Videos_722_x264.mp4  Normal  41.7333333333  -1.0  -1.0
+Normal_Videos_725_x264.mp4  Normal  0.0  -1.0  -1.0
+Normal_Videos_745_x264.mp4  Normal  0.0  -1.0  -1.0
+Normal_Videos_758_x264.mp4  Normal  0.0  -1.0  -1.0
+Normal_Videos_778_x264.mp4  Normal  0.0  -1.0  -1.0
+Normal_Videos_780_x264.mp4  Normal  0.0  -1.0  -1.0
+Normal_Videos_781_x264.mp4  Normal  0.0  -1.0  -1.0
+Normal_Videos_782_x264.mp4  Normal  0.0  -1.0  -1.0
+Normal_Videos_783_x264.mp4  Normal  0.0  -1.0  -1.0
+Normal_Videos_798_x264.mp4  Normal  0.0  -1.0  -1.0
+Normal_Videos_801_x264.mp4  Normal  0.0  -1.0  -1.0
+Normal_Videos_828_x264.mp4  Normal  0.0  -1.0  -1.0
+Normal_Videos_831_x264.mp4  Normal  0.0  -1.0  -1.0
+Normal_Videos_866_x264.mp4  Normal  0.6666666667  -1.0  7.0666666667
+Normal_Videos_866_x264.mp4  Normal  8.1666666667  -1.0  16.7333333333
+Normal_Videos_866_x264.mp4  Normal  17.7333333333  -1.0  -1.0
+Normal_Videos_867_x264.mp4  Normal  0.0  -1.0  -1.0
+Normal_Videos_868_x264.mp4  Normal  0.0  -1.0  -1.0
+Normal_Videos_869_x264.mp4  Normal  0.0  -1.0  -1.0
+Normal_Videos_870_x264.mp4  Normal  0.0  -1.0  -1.0
