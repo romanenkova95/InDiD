@@ -14,7 +14,7 @@ from torch.distributions.multivariate_normal import MultivariateNormal
 class CPDDatasets:
     """Class for experiments' datasets."""
 
-    def __init__(self, experiments_name: str) -> None:
+    def __init__(self, experiments_name: str =  "mnist128" ) -> None:
         """Initialize class.
 
         :param experiments_name: type of experiments (only mnist available now!)
@@ -23,11 +23,9 @@ class CPDDatasets:
 
         # TODO make 
         if experiments_name in [
-            "human_activity",
-            "mnist64", "mnist128", "mnist256", "mnist512", "mnist", 
+            "mnist64", "mnist128", "mnist256", "mnist512", "mnist768", "mnist1024", "mnist", 
             "1changes", "2changes", "4changes", "6changes", "8changes", "10changes",
-            "explosion",
-            "oops",
+            "topic_segmentation"
         ]:
             self.experiments_name = experiments_name
         elif experiments_name.startswith('synthetic'):
@@ -45,42 +43,33 @@ class CPDDatasets:
         if self.experiments_name[:5] == "mnist":
             if self.experiments_name[5:] == '':
                 self.experiments_name += '64'
-            path_to_data = "/home/eromanenkova/Intern_CPD/Anna/" + "data/"+ self.experiments_name[5:] + "/"
-            #path_to_data = "/home/eromanenkova/Intern_CPD/Anna/" + "data/64/"
+            path_to_data = "/mnt/data/eromanenkova/Intern_CPD/Anna/data/128/"
 
             dataset = MNISTSequenceDataset(path_to_data=path_to_data, type_seq="all")
             train_dataset, test_dataset = CPDDatasets.train_test_split_(
                 dataset, test_size=0.3, shuffle=True
             )
         if self.experiments_name[-7:] == "changes":
-            path_to_data = "/home/eromanenkova/Intern_CPD/Anna/" + "data/"+ self.experiments_name + "/"
-            #path_to_data = "/home/eromanenkova/Intern_CPD/Anna/" + "data/64/"
-
+            path_to_data = "/mnt/data/eromanenkova/Intern_CPD/Anna" + "data/"+ self.experiments_name + "/"
+     
             dataset = MNISTSequenceDataset(path_to_data=path_to_data, type_seq="all")
             train_dataset, test_dataset = CPDDatasets.train_test_split_(
                 dataset, test_size=0.3, shuffle=True
             )
-        elif self.experiments_name == "oops":
-            path_to_train_data = "data/oops/train_data"
-            path_to_val_data = "data/oops/val_data"
-            #train_dataset = OOPSSequenceDataset.get_subset(path_to_data=path_to_train_data,
-            #                                               subset_size=1000)
-            #test_dataset = OOPSSequenceDataset.get_subset(path_to_data=path_to_val_data,
-            #                                             subset_size=1000)
-            train_dataset = OOPSSequenceDataset(path_to_data=path_to_train_data)
-            test_dataset = OOPSSequenceDataset(path_to_data=path_to_val_data)
 
+        #----------------------------------------------------------------------------------------#
+        ##########################################################################################
         elif self.experiments_name.startswith("synthetic"):
             dataset = SyntheticNormalDataset(seq_len=128, num=1000, D=self.D, random_seed=123)
             train_dataset, test_dataset = CPDDatasets.train_test_split_(
                 dataset, test_size=0.3, shuffle=True
             )
             
-        elif self.experiments_name == "human_activity":
-            path_to_data = "data/human_activity/"
-            
-            train_dataset = HumanActivityDataset(path_to_data=path_to_data, type_="train")
-            test_dataset = HumanActivityDataset(path_to_data=path_to_data, type_="test")
+        elif self.experiments_name == "topic_segmentation":
+            dataset = TextSequenceDataset('/mnt/data/eromanenkova/Intern_CPD/Anna/text_segmentation/data_vecs_32.pt')
+            train_dataset, test_dataset = CPDDatasets.train_test_split_(
+                dataset, test_size=0.3, shuffle=True
+            )
         return train_dataset, test_dataset
 
     @staticmethod
@@ -109,7 +98,62 @@ class CPDDatasets:
         test_set = Subset(dataset, test_idx)
         return train_set, test_set
 
+from torch.utils.data import Dataset, Subset
 
+class TextSequenceDataset(Dataset):
+    """Class for Dataset consists of sequences of MNIST images."""
+
+    def __init__(self, path) -> None:
+        """Initialize datasets' parameters.
+
+        :param path_to_data: path to folders with MNIST sequences
+        :param type_seq: type of data for loading (only normal, only anomaly, all)
+        """
+        super().__init__()
+
+        # set paths to data
+                
+        self.data_vecs = torch.load(path)
+        self.permutation = np.arange(len(self.data_vecs)//3) #np.random.permutation(np.arange(len(data_vecs)//3))    
+        self.text = [self.data_vecs['text_'+str(i)] for i in self.permutation ]
+        self.vecs = [self.data_vecs['t2v_'+str(i)] for i in self.permutation ]
+        self.labels = [self.data_vecs['labels_'+str(i)] for i in self.permutation]
+        
+        
+    def __len__(self) -> int:
+        """Get datasets' length.
+
+        :return: length of dataset
+        """
+        return len(self.labels)
+
+    def __getitem__(self, idx):
+        """Get one images' sequence and corresponding labels from dataset.
+
+        :param idx: index of element in dataset
+        :return: tuple of
+             - sequence of images
+             - sequence of labels
+        """
+        #seq_sentences = self.text[idx]
+        seq_sentences = self.text[idx]
+        seq_vecs = self.vecs[idx]
+        seq_labels = self.labels[idx]
+        return seq_vecs, seq_labels
+    
+    def get_text(self, idx):
+        """Get one images' sequence and corresponding labels from dataset.
+
+        :param idx: index of element in dataset
+        :return: tuple of
+             - sequence of images
+             - sequence of labels
+        """
+        seq_sentences = self.text[idx]
+        seq_vecs = self.vecs[idx]
+        seq_labels = self.labels[idx]
+        return seq_sentences, seq_vecs, seq_labels
+    
 class MNISTSequenceDataset(Dataset):
     """Class for Dataset consists of sequences of MNIST images."""
 
@@ -184,73 +228,6 @@ class MNISTSequenceDataset(Dataset):
         :return: image in gray scale
         """
         return frame[:, :, 0]
-
-class OOPSSequenceDataset(Dataset):
-    """Class for Dataset consists of sequences of OOPS images."""
-
-    def __init__(self, path_to_data: str) -> None:
-        """Initialize datasets' parameters.
-
-        :param path_to_data: path to folders with OOPS sequences
-        """
-        super().__init__()
-
-        # set paths to data
-        self.path_to_data = path_to_data
-
-        self.sample_paths = [
-            os.path.join(self.path_to_data, x)
-            for x in os.listdir(self.path_to_data)
-        ]
-
-    def __len__(self) -> int:
-        """Get datasets' length.
-
-        :return: length of dataset
-        """
-        return len(self.sample_paths)
-
-    def __getitem__(self, idx: int) -> Tuple[np.array, np.array]:
-        """Get one images' sequence and corresponding labels from dataset.
-
-        :param idx: index of element in dataset
-        :return: tuple of
-             - sequence of images
-             - sequence of labels
-        """
-        # read sequences of images
-        path_img = self.sample_paths[idx]
-        seq_images = ImageSequence(os.path.join(path_img, "*_*.png"))
-        seq_images = np.transpose(seq_images, (0, 3, 1, 2)).astype(float)
-        # TODO: fix
-        seq_images = np.transpose(seq_images, (1, 0, 2, 3)).astype(np.float64)
-
-        seq_labels = sorted(os.listdir(path_img), key=lambda x: int(x.split("_")[0]))
-
-        # get corresponding labels
-        seq_labels = [int(x.split(".png")[0].split("_")[1]) for x in seq_labels]
-        seq_labels = (np.array(seq_labels) != seq_labels[0]).astype(int)
-
-        return seq_images, seq_labels
-    
-    @staticmethod
-    def get_subset(path_to_data: str, subset_size: int, random_seed=123):
-        """Get subset of dataset.
-
-        :param path_to_data: path to data
-        :param subset_size: size of subset
-        :param random_seed: fix seed for reproduction
-        
-        :return: subset of dataset with corresponded size
-        """
-        
-        dataset = OOPSSequenceDataset(path_to_data)
-        
-        np.random.seed(random_seed)
-        idx = np.random.randint(0, len(dataset), size=subset_size)
-        
-        return Subset(dataset, idx)  
-    
     
 class SyntheticNormalDataset(Dataset):
 
@@ -292,14 +269,14 @@ class SyntheticNormalDataset(Dataset):
             m = MultivariateNormal(mu[0] * torch.ones(D), torch.eye(D))    
             x1 = []
             for _ in range(seq_len):
-                x1_ = m.sample()
+                x1_ = abs(m.sample())
                 x1.append(x1_)
             x1 = torch.stack(x1)
 
             m = MultivariateNormal(mu[1] * torch.ones(D), torch.eye(D))    
             x2 = []
             for _ in range(seq_len):
-                x2_ = m.sample()
+                x2_ = abs(m.sample())
                 x2.append(x2_)
             x2 = torch.stack(x2)            
             
@@ -328,134 +305,59 @@ class SyntheticNormalDataset(Dataset):
         return data, labels
     
 
-#TODO Reformat
-class HumanActivityDataset(Dataset):
-
-    def __init__(self, path_to_data, type_="train"):
-
-        super().__init__()
-
-        data, self.names = self.load_data(path_to_data, type_=type_)
-        self.features, self.labels = self.preprocess(data, self.names)
-
+#####################################################################################################
+    
+class BaselineDataset(Dataset):
+    def __init__(self, cpd_dataset, baseline_type='simple', subseq_len=None):
+        self.baseline_type = baseline_type
         
-    def load_data(self, path, type_="train"):
-        data_path = path + "/T" + type_[1:] + "/X_" + type_ + ".txt"
-        labels_path = path + "/T" + type_[1:] + "/y_" + type_ + ".txt"
-        subjects_path = path + "/T" + type_[1:] + "/subject_id_" + type_ + ".txt"
+        def get_subset_(
+            dataset: Dataset, subset_size: int, shuffle: bool = True, random_seed: int = 123
+        ) -> Dataset:
+            random.seed(random_seed)
+            np.random.seed(random_seed)
 
-        data = pd.read_csv(data_path, sep=" ", header=None)
-        labels = pd.read_csv(labels_path, sep=" ", header=None)
-        subjects = pd.read_csv(subjects_path, sep=" ", header=None)
+            len_dataset = len(dataset)
+            idx = np.arange(len_dataset)
 
-        data["subject"] = subjects
-        data["labels"] = labels
+            if shuffle:
+                idx = random.sample(list(idx), min(subset_size, len_dataset))
+            else:
+                idx = idx[: subset_size]
+            subset = Subset(dataset, idx)
+            return subset  
+    
+    
+        self.cpd_dataset = cpd_dataset
+        self.N = len(cpd_dataset)
+        # TODO FIX         
+        self.T = len(cpd_dataset.__getitem__(0)[1])
         
-        df_names = pd.read_csv(path + '/features.txt', header=None)
-        names = df_names[0]
+        self.subseq_len = subseq_len
         
-        return data, names
-    
-    def preprocess(self, data, idxs):
-    
-        def find_change(array):
-            count_ = 0
-            changes = []
-            len_ = len(array)
-            for i in range(len_):             
-                if i < len_-3:
-                    value_current = array[i]
-                    value_ahead = array[i+1]
-
-                    if value_current!=value_ahead:
-                        changes.append(i)
-            return changes
-
-
-        def find_idx(data):
-            subjects = np.unique(data.subject)
-            changes_global = np.array([])
-            for subject in subjects:
-                local = data[data.subject==subject]
-                local = local.reset_index(drop=True)
-
-                changes_ = find_change(local.labels)
-                changes_ = np.append([0], changes_)
-                start = 0
-                len_ = len(changes_)
-                changes_local = np.array([])
-                while True:
-                    changes_local = np.append(changes_local, changes_[start:start+4])
-                    start += 2
-                    if start > len_-4:
-                        break
-                changes_global = np.append(changes_global, changes_local)       
-            return changes_global
-
-
-        def prepare_idx(changes_global):
-            max_len = 20
-
-            changes_global = changes_global.reshape(changes_global.shape[0]//4, 4)
-            changes_global[:, 0] += 1
-            changes_global[0, 0] -= 1
-
-            changes_global_final = []   
-
-            for i, change in enumerate(changes_global):
-                len_ = change[3] - change[0]
-                diff = len_ - max_len
-                if diff > 0:
-                    if ((changes_global[i][1]-changes_global[i][0])<max_len) and (changes_global[i][1]-changes_global[i][0])>0:
-                        changes_global_final.append([changes_global[i][0], changes_global[i][1], changes_global[i][2], changes_global[i][0] + max_len])
-                    #else:
-                    #    changes_global_final.append([changes_global[i][0], changes_global[i][0] + max_len, changes_global[i][0] + max_len, changes_global[i][0] + max_len])
-
-            return changes_global_final
-
-
-        def prepare_data(data, changes_global_final, idxs):
-            max_len = int(changes_global_final[0][3] - changes_global_final[0][0])
-            train_set = torch.tensor([])
-
-            for i, change in enumerate(changes_global_final):
-                start, end = int(change[0]), int(change[3])
-                element = data[start:end].to_numpy()[:, :len(idxs)]
-                if len(train_set) == 0:
-                    train_set = torch.tensor(element)
-                else:
-                    train_set = torch.cat([train_set, torch.tensor(element)])
-
-            train_set = train_set.reshape(len(train_set)//max_len, max_len, len(idxs))
-            return train_set
-
-
-        def prepare_labels(changes_global_final):
-            labels = []
-            max_len = int(changes_global_final[0][3] - changes_global_final[0][0])
-
-            for change in changes_global_final:
-                position = int(change[2]-change[0])
-                if position < max_len:
-                    labels_local = np.append(np.zeros(position), np.ones(max_len-position))
-                    labels.append(labels_local)
-            return torch.tensor(labels, dtype=torch.int)
-
-        changes_global = find_idx(data)
-        print(changes_global)
-        changes_global_final = prepare_idx(changes_global)
-        set_ = prepare_data(data, changes_global_final, idxs)
-        labels = prepare_labels(changes_global_final)
-        return set_, labels    
-    
-    def __len__(self) -> int:
-        """Get datasets' length.
-
-        :return: length of dataset
-        """
-        return len(self.labels)
-    
-    def __getitem__(self, idx: int) -> Tuple[np.array, np.array]:
-        print(idx)
-        print('----')
-        return self.features[idx], self.labels[idx]    
+        if (self.baseline_type == 'weak_labels') and (self.subseq_len is None):
+            raise ValueError('Please, set subsequence length.')
+        
+    def __len__(self):
+        if self.baseline_type == 'simple':
+            return self.N * self.T
+        elif (self.baseline_type == 'weak_labels'):
+            return self.N * (self.T - self.subseq_len + 1)
+        else:
+            raise ValueError("Wrong type of baseline.")
+        
+    def __getitem__(self, idx):
+        if self.baseline_type == 'simple':
+            global_idx = idx // self.T
+            local_idx = idx % self.T
+            images = self.cpd_dataset[global_idx][0]
+            images = images[local_idx]
+            labels = self.cpd_dataset[global_idx][1][local_idx] 
+            
+        elif self.baseline_type == 'weak_labels':
+            global_idx = idx // (self.T - self.subseq_len + 1)
+            local_idx = idx %  (self.T - self.subseq_len + 1)
+            images = self.cpd_dataset[global_idx][0][:, local_idx: local_idx + self.subseq_len]
+            labels = max(self.cpd_dataset[global_idx][1][:, local_idx: local_idx + self.subseq_len])
+            
+        return images, labels    
