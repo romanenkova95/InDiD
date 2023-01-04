@@ -1,0 +1,20 @@
+model:
+  input_size: 12288
+  hidden_rnn: 64
+  rnn_n_layers: 1
+  rnn_dropout: 0.5
+  dropout: 0.5
+
+learning:
+  batch_size: 16
+  lr: 0.001
+  epochs: 200
+  grad_clip: 0.0
+
+loss:
+  T: 8
+
+early_stopping:
+  monitor: "val_loss"
+  min_delta: 0
+  patience: 10

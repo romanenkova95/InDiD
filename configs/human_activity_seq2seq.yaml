@@ -1,0 +1,19 @@
+model:
+  hidden_dim: 8
+  input_size: 28
+  n_layers: 1
+  drop_prob: 0.5
+
+learning:
+  batch_size: 64
+  lr: 0.001
+  epochs: 200
+  grad_clip: 0.0
+  
+loss:
+  T: 5
+
+early_stopping:
+  monitor: "val_loss"
+  min_delta: 0
+  patience: 10

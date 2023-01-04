@@ -1,0 +1,22 @@
+model:
+  input_size: 784
+  hidden_rnn: 32
+  rnn_n_layers: 1
+  linear_dims: [32]
+  rnn_dropout: 0.25
+  dropout: 0.5
+  rnn_type: "LSTM"
+
+learning:
+  batch_size: 64
+  lr: 0.001
+  epochs: 200
+  grad_clip: 0.0
+
+loss:
+  T: 32
+
+early_stopping:
+  monitor: "val_loss"
+  min_delta: 0
+  patience: 10

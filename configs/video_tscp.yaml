@@ -1,0 +1,35 @@
+model:
+  c_in: 12288
+  nb_filters: 256
+  kernel_size: 5
+  nb_stacks: 2
+  dilations: [1, 2, 4, 8]
+  use_skip_connections: True
+  use_batch_norm: False
+  use_layer_norm: False
+  use_weight_norm: False
+  dropout_rate: 0.
+  seq_len: 4
+  n_steps: 256
+  code_size: 128
+  window: 4
+  window_1: 4
+  window_2: 4
+  
+learning:
+  batch_size: 16
+  lr: 0.001
+  epochs: 200
+  decay_steps: 1000
+  grad_clip: 0.
+
+loss:
+  temperature: 0.1
+
+predictions:
+  scale: 1.
+
+early_stopping:
+  monitor: train_loss_epoch
+  min_delta: 0.0001
+  patience: 5

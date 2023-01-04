@@ -1,0 +1,30 @@
+model:
+  input_dim: 12288
+  lin_emb_dim: 100
+  rnn_hid_dim: 16
+  num_layers: 1
+  wnd_dim: 8
+  window_1: 8
+  window_2: 8
+
+learning:
+  batch_size: 8
+  lr: 0.0001
+  epochs: 200
+  critic_iters: 5
+  weight_clip: 0.1
+  weight_decay: 0.
+  grad_clip: 10.
+
+loss:
+  lambda_real: 10.
+  lambda_ae: 0.1
+  sqdist: 50
+
+predictions:
+  scale: 10000000
+
+early_stopping:
+  monitor: "val_mmd2_real_D"
+  min_delta: 0.00001
+  patience: 5
