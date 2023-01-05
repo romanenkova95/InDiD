@@ -103,40 +103,6 @@ def history_future_separation(
         
     return history, future
 
-'''
-def history_future_separation_test(data, window_1, window_2, step=1):    
-    
-    if len(data.shape) <= 4:
-        history = data[:, :window_1]
-        future = data[:, window_1:]
-        seq_len = future.shape[1]
-    elif len(data.shape) == 5:
-        history = data[:, :, :window_1]
-        future = data[:, :, window_1:]
-        seq_len = future.shape[2]
-    
-    future_slices = []
-    for i in range(0, (seq_len - window_2) // step + 1):
-        start_ind = i*step
-        end_ind = window_2 + step * i
-        if len(data.shape) <= 4:
-            future_slices.append(future[:, start_ind: end_ind])
-        elif len(data.shape) == 5:
-            future_slices.append(future[:, :, start_ind: end_ind])   
-    future_slices = torch.cat(future_slices)
-    
-    if len(data.shape) == 4:
-        future_slices = future_slices.reshape(future.shape[0], -1, future_slices.shape[1], 
-                                              future.shape[2], future.shape[3])
-
-    elif len(data.shape) == 3:
-        future_slices = future_slices.reshape(future.shape[0], -1, future_slices.shape[1], 
-                                              future.shape[2])
-    elif len(data.shape) == 5:
-        future_slices = future_slices.reshape(future.shape[0], -1, future.shape[1], future_slices.shape[2], 
-                                              future.shape[3], future.shape[4])        
-    return history, future_slices
-'''
 
 def history_future_separation_test(
     data: torch.Tensor,
