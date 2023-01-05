@@ -80,6 +80,8 @@ The full list of options for `classic_baselines.py` :
   * --core_model - model parameter for Binseg and Pelt (available options are 'l1', 'l2' and 'rbf'; default is 'l2');
   * --seed - random seed to be fixed for reproducibility (otional, default is 102);
   * --verbose - if true, the result metrics will be printed to the console (optional, default is False).
+  
+Please, note that for the classic baselines, either 'n_pred' or 'pen' parameter should be specified.
 
 ## Experiments with custom models and datasets
 You may experiment with custom core models or/and datasets using our CPD utilities. To do so, please, look at the examples provided in the jupyter notebook `custom_experiment.ipynb`.
