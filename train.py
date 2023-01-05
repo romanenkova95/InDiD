@@ -5,8 +5,6 @@ from utils.arg_parsing import get_train_parser, get_args
 import warnings
 warnings.filterwarnings("ignore")
 
-from typing import Dict
-
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
@@ -15,11 +13,8 @@ from pathlib import Path
 from datetime import datetime
 
 import torch
-import os
-import time
-import sys
 
-def main(args: Dict) -> str:
+def main(args: dict) -> str:
     experiments_name = args["experiments_name"]
     model_name = args["model_type"]
 
