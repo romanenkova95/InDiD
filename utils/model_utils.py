@@ -4,6 +4,7 @@ import torch
 from torch.utils.data import Dataset
 import yaml
 import pytorch_lightning as pl
+import ruptures as rpt
 
 from . import core_models, cpd_models
 from . import klcpd, tscp
@@ -31,8 +32,11 @@ def get_models_list(
     elif args["model_type"] == "tscp":
         models_list = get_tscp_models_list(args, train_dataset, test_dataset)
 
+    elif args["model_type"].startswith("classic"):
+        models_list = get_classic_models_list(args)
+
     else:
-        raise ValueError(f'Unknown model {args["model"]}.')
+        raise ValueError(f'Unknown model {args["model_type"]}.')
 
     return models_list
 
@@ -171,4 +175,32 @@ def get_tscp_models_list(
     )
 
     models_list = [model]
+    return models_list
+
+def get_classic_models_list(args: dict) -> List[cpd_models.ClassicBaseline]:
+    """ Initialize classic baseline models.
+
+    :param args: dict with all the parameters
+    :return: ClassicBaseline model
+    """
+    if (args["n_pred"] is None and args["pen"] is None) \
+            or (args["n_pred"] is not None and args["pen"] is not None):
+            
+            raise ValueError("You should specify either 'n_pred' or 'pen' parameter for a ClassicBaseline model.")
+
+    if args["model_type"] == "classic_binseg":
+        model = cpd_models.ClassicBaseline(rpt.Binseg(model=args["core_model"]), n_pred=args["n_pred"], pen=args["pen"])
+    
+    elif args["model_type"] == "classic_pelt":
+        model = cpd_models.ClassicBaseline(rpt.Pelt(model=args["core_model"]), n_pred=arg["n_pred"], pen=args["pen"])
+    
+    elif args["model_type"] == "classic_kernel":        
+        model = cpd_models.ClassicBaseline(rpt.KernelCPD(kernel=args["kernel"]), n_pred=args["n_pred"], pen=args["pen"])
+
+    else:
+        raise ValueError(f'Wrong classic baseline type: {args["model_type"]}.')
+    
+    # for consistency with the general interface
+    models_list = [model]
+    
     return models_list

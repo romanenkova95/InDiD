@@ -1,4 +1,4 @@
-"""Argument parsers for train.py, test.py and run.py"""
+"""Argument parsers for train.py, test.py, run.py and classic_baselines.py."""
 import argparse
 import yaml
 
@@ -8,9 +8,8 @@ def get_train_parser():
     parser = argparse.ArgumentParser(description='Train model')
     parser.add_argument("--model_type", type=str, required=True, help='Model type',
                         choices=["seq2seq", "kl_cpd", "tscp"]) 
-                                 # TODO: add baselines
     parser.add_argument("--loss_type", type=str, default=None, help='Loss type for seq2seq model',
-                        choices=["indid", "bce", "combined"]) # ??? is it ok?
+                        choices=["indid", "bce", "combined"])
     parser.add_argument("--experiments_name", type=str, required=True,
                         help='name of dataset',
                         choices=["synthetic_1D", "synthetic_100D", "mnist", "human_activity", "explosion", "road_accidents"])
@@ -49,9 +48,8 @@ def get_run_parser():
     parser = argparse.ArgumentParser(description='Run experiment')
     parser.add_argument("--model_type", type=str, required=True, help='Model type',
                         choices=["seq2seq", "kl_cpd", "tscp"]) 
-                                 # TODO: add baselines
     parser.add_argument("--loss_type", type=str, default=None, help='Loss type for seq2seq model',
-                        choices=["indid", "bce", "combined"]) # ??? is it ok?
+                        choices=["indid", "bce", "combined"])
     parser.add_argument("--experiments_name", type=str, required=True,
                         help='name of sdataset',
                         choices=["synthetic_1D", "synthetic_100D", "mnist", "human_activity", "explosion", "road_accidents"])
@@ -62,6 +60,30 @@ def get_run_parser():
                         help="Number of available CPUs.")
     parser.add_argument("-tn", "--threshold_number", type=int, default=100, 
                         help='threshold number')
+    # boolean
+    parser.add_argument("--verbose", default=False, type=lambda x: (str(x).lower() == 'true'), 
+                        help='If true, print the metrics to the console.')
+    return parser
+
+def get_classic_baseline_parser():
+    """Parse command line arguments for classic_baselines.py"""
+    parser = argparse.ArgumentParser(description='Run experiment')
+    parser.add_argument("--model_type", type=str, required=True, help='Model type',
+                        choices=["classic_binseg", "classic_pelt", "classic_kernel"])
+    parser.add_argument("--experiments_name", type=str, required=True,
+                        help='name of sdataset',
+                        choices=["synthetic_1D", "synthetic_100D", "mnist", "human_activity", "explosion", "road_accidents"])
+    parser.add_argument("--n_pred", type=int, default=None,
+                        help="Maximum number of predicted CPs (for ruptures models).")
+    parser.add_argument("--pen", type=float, default=None,
+                        help="Penalty parameter (for ruptures models).")
+    parser.add_argument("--kernel", type=str, default="linear",
+                        help="Type of kernel (for ruptures KernelCPD models).", 
+                        choices=["linear", "rbf", "cosine"]) # currently availible in ruptures
+    parser.add_argument("--core_model", type=str, default="l2",
+                        help="Type of model (for ruptures Binseg and Pelt models).", 
+                        choices=["l1", "l2", "rbf"]) # currently availible in ruptures
+    parser.add_argument("--seed", type=int, default=102, help="Random seed")
     # boolean
     parser.add_argument("--verbose", default=False, type=lambda x: (str(x).lower() == 'true'), 
                         help='If true, print the metrics to the console.')

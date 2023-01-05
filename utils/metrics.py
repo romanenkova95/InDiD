@@ -12,7 +12,11 @@ from pathlib import Path
 
 import pytorch_lightning as pl
 
-from utils import klcpd, tscp
+from utils import klcpd, tscp, cpd_models
+
+#------------------------------------------------------------------------------------------------------------#
+#                         Evaluate seq2seq, KL-CPD and TS-CP2 baseline models                                #
+#------------------------------------------------------------------------------------------------------------#
 
 def find_first_change(mask: np.array) -> np.array:
     """Find first change in batch of predictions.
@@ -342,7 +346,7 @@ def evaluation_pipeline(
     model_type: str = 'seq2seq',
     subseq_len: int = None,
     scale: int = None
-    ) -> Tuple[Tuple[float], dict, dict]:
+) -> Tuple[Tuple[float], dict, dict]:
     """Evaluate trained CPD model.
 
     :param model: trained CPD model to be evaluated
@@ -444,6 +448,94 @@ def evaluation_pipeline(
     return (best_th_f1, best_time_to_FA, best_delay, auc, best_conf_matrix, best_f1, best_cover, 
                                             best_th_cover, max_cover), delay_dict, fp_delay_dict
 
+
+#------------------------------------------------------------------------------------------------------------#
+#                                      Evaluate classic baselines                                            #
+#------------------------------------------------------------------------------------------------------------#
+
+def get_classic_baseline_predictions(
+    dataloader: DataLoader,
+    baseline_model: cpd_models.ClassicBaseline,
+) -> Tuple[torch.Tensor, torch.Tensor]:
+    """ Get predictions of a classic baseline model.
+
+    :param dataloader: validation dataloader
+    :param baseline_model: core model of a classic baseline (from ruptures package)
+    :return: tuple of
+        - predicted labels
+        - true pabels
+    """
+    all_predictions = []
+    all_labels = []
+    for inputs, labels in dataloader:
+        all_labels.append(labels)
+        baseline_pred = baseline_model(inputs)
+        all_predictions.append(baseline_pred)
+
+    all_labels = torch.from_numpy(np.vstack(all_labels))
+    all_predictions = torch.from_numpy(np.vstack(all_predictions))
+    return all_predictions, all_labels
+
+
+def classic_baseline_metrics(
+    all_labels: torch.Tensor,
+    all_preds: torch.Tensor, 
+    threshold: float=0.5
+) -> Tuple[float, float, float, None, Tuple[int], float, float, float, float]:
+    """ Calculate metrics for a classic baseline model.
+
+    :param all_labels: tensor of true labels
+    :param all_preds: tensor of predictions
+    :param threshold: alarm threshold (=0.5 for classic models)
+    :return: turple of metrics
+        - best threshold for F1-score (always 0.5)
+        - mean Time to a False Alarm
+        - mean Detection Delay
+        - None (no AUC metric for classic baselines)
+        - best confusion matrix (number of TN, FP, FN and TP predictions)
+        - F1-score
+        - covering metric
+        - best thresold for covering metric (always 0.5)
+        - covering metric
+    Note that we return some unnecessary values for consistency with our general evaluation pipeline.
+    """
+    FP_delays = []
+    delays = []
+    covers = []
+    TN, FP, FN, TP = (0, 0, 0, 0)
+    TN, FP, FN, TP, FP_delay, delay, cover = calculate_metrics(all_labels, all_preds > threshold)     
+    f1 = F1_score((TN, FP, FN, TP))
+    FP_delay = torch.mean(FP_delay.float()).item()
+    delay = torch.mean(delay.float()).item()
+    cover = np.mean(cover)
+    return 0.5, FP_delay, delay, None, (TN, FP, FN, TP), f1, cover, 0.5, cover
+
+def calculate_baseline_metrics(
+    model: cpd_models.ClassicBaseline,
+    val_dataloader: DataLoader,
+    verbose: bool=False
+) -> Tuple[float, float, float, None, Tuple[int], float, float, float, float]:
+    """ Calculate metrics for a classic baseline model.
+
+    :param model: core model of a classic baseline (from ruptures package)
+    :param val_dataloader: validation dataloader
+    :param verbose: if true, print the metrics to the console
+    :return: tuple of metrics (see 'classic_baseline_metrics' function)
+    """
+    pred, labels = get_classic_baseline_predictions(val_dataloader, model)
+    metrics = classic_baseline_metrics(labels, pred)
+
+    _, mean_FP_delay, mean_delay, _, (TN, FP, FN, TP), f1, cover, _, _ = metrics
+
+    if verbose:
+        print(
+            f'TN: {TN}, FP: {FP}, FN: {FN}, TP: {TP}, DELAY: {mean_delay}, FP_DELAY:{mean_FP_delay}, F1:{f1}, COVER: {cover}'
+        )
+    return metrics
+
+#------------------------------------------------------------------------------------------------------------#
+#                                              Save results                                                  #
+#------------------------------------------------------------------------------------------------------------#
 def write_metrics_to_file(
     filename: str,
     metrics: tuple,

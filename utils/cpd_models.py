@@ -24,64 +24,66 @@ def fix_seeds(seed: int) -> None:
     random.seed(seed)
     np.random.seed(seed)
 
+
 class ClassicBaseline(nn.Module):
     """Class for classic (from ruptures) Baseline models."""
-
     def __init__(
         self,
         model: BaseEstimator,
-        pen: Optional[float] = None,
-        n_pred: Optional[int] = None,
+        pen: float = None,
+        n_pred: int = None,
+        device: str = 'cpu'
     ) -> None:
+        """Initialize ClassicBaseline model.
+
+        :param model: core model (from ruptures)
+        :param pen: penalty parameter (for ruptures models)
+        :param n_pred: maximum number of predicted CPs (for ruptures models)
+        :param device: 'cpu' or 'cuda' (if available)
+        """
         super().__init__()
+        self.device = device
         self.model = model
         self.pen = pen
         self.n_pred = n_pred
 
     def forward(self, inputs: torch.Tensor) -> torch.Tensor:
-        """CPD for Baseline models (from ruptures package).
+        """Get predictions of a ClassicBaseline models.
 
         :param inputs: input signal
-        :return: tensor with change point predictions
-        """
+        :return: tensor with predicted change point labels
+        """ 
         all_predictions = []
         for i, seq in enumerate(inputs):
-            # signal should have dimensions (n_samples, n_dims)
-            # TODO: check for 1D signals
-            signal = seq.flatten(1).detach().cpu().numpy()
+            # (n_samples, n_dims)
+            try:
+                signal = seq.flatten(1, 2).detach().cpu().numpy()
+            except:
+                signal = seq.detach().cpu().numpy()
             algo = self.model.fit(signal)
-
             cp_pred = []
             if self.pen is not None:
                 cp_pred = self.model.predict(pen=self.pen)
             elif self.n_pred is not None:
-                cp_pred = self.model.predict(self.n_pred)
+                cp_pred = self.model.predict(self.n_pred) 
             else:
-                cp_pred = self.model.predict()
-
-            # We need only first change point (our assumption)
+                cp_pred = self.model.predict()                 
             cp_pred = cp_pred[0]
             baselines_pred = np.zeros(inputs.shape[1])
-            baselines_pred[cp_pred:] = np.ones(inputs.shape[1] - cp_pred)
+            baselines_pred[cp_pred:] = np.ones(inputs.shape[1] - cp_pred)        
             all_predictions.append(baselines_pred)
-
-        # TODO: check
-        # out = torch.from_numpy(np.array(all_predictions))
-        out = torch.cat(all_predictions)
+        out = torch.from_numpy(np.array(all_predictions))
         return out
-
 
 class CPDModel(pl.LightningModule):
     """Pytorch Lightning wrapper for change point detection models."""
-
     def __init__(
         self,
         loss_type: str,
         args: dict,
         model: nn.Module,
         train_dataset: Dataset,
-        test_dataset: Dataset,
-        #extractor: Optional[nn.Module] = None #, Use extractor by default as in the paper
+        test_dataset: Dataset
     ) -> None:
         """Initialize CPD model.
 
