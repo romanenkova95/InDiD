@@ -39,9 +39,6 @@ def main(args: dict) -> str:
 
     model_name_for_save = f'{model_name}_pen_{args["pen"]}_n_pred_{args["n_pred"]}_kernel_{args["kernel"]}.txt'
 
-    #print(model_name_for_save)
-    #print("path:", f'{str(path_to_metric)}/'+ model_name_for_save)
-
     path_to_metric.mkdir(parents=True, exist_ok=True)
     
     metrics.write_metrics_to_file(
