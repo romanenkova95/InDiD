@@ -14,7 +14,7 @@ The mark-up files for the video datasets are to be found in the corresponding di
 ## Training a model
 To train a model, you should use `train.py` script. For example, the following command 
 ```
-python train.py --model_type seq2seq -- loss_type indid --experiments_name mnist
+python train.py --model_type seq2seq --loss_type indid --experiments_name mnist
 ``` 
 will train a seq2seq model with our principled InDiD loss on the dataset of MNIST images. The trained model marked by a current timestamp will be saved into `saves/models/mnist/` directory.
 
@@ -30,7 +30,7 @@ The full list of options for `train.py`:
 ## Evaluating a model
 To evaluate a pre-trained model, you should use `test.py` script. For example, the following command
 ```
-python test.py --model_type seq2seq -- loss_type indid --experiments_name mnist --timestamp 230104T075800
+python test.py --model_type seq2seq --loss_type indid --experiments_name mnist --timestamp 230104T075800
 ```
 will load a pre-trained model named 'model_seq2seq_indid_230104T075800.pth' saved in the `saves/models/mnist/` directory.
 
@@ -46,7 +46,7 @@ The full list of options for `test.py`:
 ## Running a full experiment
 To run a full experiment (initialize, train, save and evaluate a model), you may use `run.py` script. For example, the following command
 ```
-python run.py --model_type seq2seq -- loss_type indid --experiments_name mnist 
+python run.py --model_type seq2seq --loss_type indid --experiments_name mnist 
 ```
 will run `train.py` and `test.py` scripts with the corresponding arguments in sequence.
 
