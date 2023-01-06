@@ -16,7 +16,7 @@ To train a model, you should use `train.py` script. For example, the following c
 ```
 python train.py --model_type seq2seq --loss_type indid --experiments_name mnist
 ``` 
-will train a seq2seq model with our principled InDiD loss on the dataset of MNIST images. The trained model marked by a current timestamp will be saved into `saves/models/mnist/` directory.
+will train a seq2seq model with our principled InDiD loss on the dataset of MNIST image sequences. The trained model marked by the current timestamp will be saved into `saves/models/mnist/` directory.
 
 The full list of options for `train.py`:
   * --model_type - type of the model to be trained (available options are 'seq2seq', 'kl_cpd' and 'tscp');
