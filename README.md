@@ -1,4 +1,4 @@
-# InDiD: Instant Disorder Detection via a Principled Neural Network
+# InDiD: Instant Disorder Detection via a Principled Neural Network (ACM Multimedia 22')
 This repository contains the source code to reproduce experiments from the [paper](https://dl.acm.org/doi/abs/10.1145/3503161.3548182). The code can be used for the experiments with our sequence-to-sequence models ('InDiD', 'BCE' and 'BCE+InDiD'), KL-CPD and TS-CP&#x00B2; baselines, as well as the classic CPD baselines from the [ruptures](https://github.com/deepcharles/ruptures) package.
 
 In addition, we provide a full version of Appendix with the expanded classic methods result, data examples and implementation details which were cut from the paper due to space limitations.
