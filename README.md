@@ -1,5 +1,5 @@
 # InDiD: Instant Disorder Detection via a Principled Neural Network (ACM Multimedia 22')
-This repository contains the source code to reproduce experiments from the [paper](https://dl.acm.org/doi/abs/10.1145/3503161.3548182). The code can be used for the experiments with our sequence-to-sequence models ('InDiD', 'BCE' and 'BCE+InDiD'), KL-CPD and TS-CP&#x00B2; baselines, as well as the classic CPD baselines from the [ruptures](https://github.com/deepcharles/ruptures) package.
+This repository contains the source code to reproduce experiments from the [paper](https://dl.acm.org/doi/abs/10.1145/3503161.3548182). The code can be used for the experiments with our sequence-to-sequence models (InDiD, BCE and BCE+InDiD), KL-CPD and TS-CP&#x00B2; baselines, as well as the classic CPD baselines from the [ruptures](https://github.com/deepcharles/ruptures) package.
 
 In addition, we provide a full version of Appendix with the expanded classic methods result, data examples and implementation details which were cut from the paper due to space limitations.
 
@@ -62,7 +62,7 @@ The full list of options for `run.py` :
   * --verbose - if true, the result metrics will be printed to the console (optional, default is False).
 
 ## Specifying model's architecture and training parameters
-For each experiment, the models' architectures and the other loss and training parameters are specified in config files in `configs/` directory. These parameters may be changed if needed.
+For each experiment, the models' architectures and the other loss and training parameters are specified in configiguration files in `configs/` directory. These parameters may be changed if needed. The files are named in the following way: 'experiments_name_model_type.yaml'.
 
 ## Experiments with classic baselines.
 We use 3 classic baselines (Binseg, Pelt and KernelCPD) implemented in [ruptures](https://github.com/deepcharles/ruptures) package. To reproduce this experiments, you should use `classic_baselines.py` script. For example, the following command
