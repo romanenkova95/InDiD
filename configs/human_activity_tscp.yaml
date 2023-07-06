@@ -1,5 +1,4 @@
 model:
-  # parameters from the table but something is wrong with the dimensions...
   c_in: 28
   nb_filters: 64
   kernel_size: 5
@@ -10,7 +9,7 @@ model:
   use_layer_norm: False
   use_weight_norm: False
   dropout_rate: 0.
-  seq_len: 16
+  seq_len: 4
   n_steps: 8
   code_size: 4
   window: 4
